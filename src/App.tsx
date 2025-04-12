@@ -7,6 +7,10 @@ function App() {
   const [currentMonth] = useState(new Date().toLocaleString('default', { month: 'short' }));
   const [currentMonthIndex] = useState(new Date().getMonth());
   const [currentDay] = useState(new Date().getDate());
+  const [yearProgress] = useState((currentMonthIndex / 11) * 100);
+  const [monthProgress] = useState((currentDay / new Date(currentYear, currentMonthIndex + 1, 0).getDate()) * 100);
+  const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
+  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [yearNotes, setYearNotes] = useState<Record<number, string>>({});
   const [monthNotes, setMonthNotes] = useState<Record<string, string>>({});
   const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
@@ -43,32 +47,32 @@ function App() {
 
 
   return (
-    <div className="min-h-screen w-screen bg-gray-100">
-      <div className="flex h-screen  ">
+    <div className="min-h-screen w-screen bg-gradient-to-br from-tarot-darker to-tarot-dark font-tarot">
+      <div className="flex h-screen">
         {/* Left sidebar - Year View */}
         <div 
           onClick={() => setExpandedColumn('left')}
-          className={`${getColumnWidth('left')} bg-white border-r border-gray-200 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden`}
+          className={`${getColumnWidth('left')} bg-tarot-dark border-r border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot hover:shadow-tarot-glow`}
         >
-          <div className="h-full bg-gray-50">
+          <div className="h-full bg-gradient-to-b from-tarot-darker to-tarot-dark">
             {expandedColumn === 'left' ? (
               <div className="h-full overflow-y-auto">
                 {years.map(year => (
                   <div 
                     key={year}
-                    className="bg-white border-b border-gray-200 h-[80vh] flex flex-col relative"
+                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative hover:bg-tarot-light/50 transition-colors duration-200"
                   >
-                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-gray-200 bg-white shadow-sm">
+                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-indigo-600" />
-                        <h3 className="text-lg font-semibold text-gray-800">{year}</h3>
+                        <Calendar className="w-4 h-4 text-tarot-gold-light" />
+                        <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{year}</h3>
                       </div>
                     </div>
                     <div className="flex-grow">
                       <textarea
                         value={yearNotes[year] || ''}
                         onChange={(e) => handleYearNoteChange(year, e.target.value)}
-                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none"
+                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-white/90 placeholder-gray-500/50 tracking-wide"
                         placeholder={`Write your notes for ${year}...`}
                         onClick={(e) => e.stopPropagation()}
                       />
@@ -78,10 +82,16 @@ function App() {
               </div>
             ) : (
               <div className="h-full flex flex-col items-center">
-                <div className="pt-4">
-                  <span className="text-gray-600 font-semibold text-lg rotate-90">
-                    '{String(currentYear).slice(-2)}
+                <div className="pt-4 flex flex-col items-center gap-2">
+                  <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
+                    {String(currentYear).slice(-2)}
                   </span>
+                  <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
+                      style={{ height: `${yearProgress}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -91,9 +101,9 @@ function App() {
         {/* Main content */}
         <div 
           onClick={() => setExpandedColumn('middle')}
-          className={`${getColumnWidth('middle')} bg-white border-r border-gray-200 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden`}
+          className={`${getColumnWidth('middle')} bg-tarot-dark border-r border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot hover:shadow-tarot-glow`}
         >
-          <div className="h-full bg-gray-50">
+          <div className="h-full bg-gradient-to-b from-tarot-darker to-tarot-dark">
             {expandedColumn === 'middle' ? (
               <div className="h-full overflow-y-auto">
                 {[
@@ -102,16 +112,16 @@ function App() {
                 ].slice(0, currentMonthIndex + 1).reverse().map((month) => (
                   <div 
                     key={month}
-                    className="bg-white border-b border-gray-200 h-[80vh] flex flex-col relative"
+                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative hover:bg-tarot-light/50 transition-colors duration-200"
                   >
-                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-gray-200 bg-white shadow-sm">
-                      <h3 className="text-lg font-semibold text-gray-800">{month}</h3>
+                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
+                      <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{month}</h3>
                     </div>
                     <div className="flex-grow">
                       <textarea
                         value={monthNotes[month] || ''}
                         onChange={(e) => handleMonthNoteChange(month, e.target.value)}
-                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none"
+                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-white/90 placeholder-gray-500/50 tracking-wide"
                         placeholder={`Write your notes for ${month}...`}
                         onClick={(e) => e.stopPropagation()}
                       />
@@ -121,10 +131,16 @@ function App() {
               </div>
             ) : (
               <div className="h-full flex flex-col items-center">
-                <div className="pt-4">
-                  <span className="text-gray-600 font-semibold text-lg rotate-90">
+                <div className="pt-4 flex flex-col items-center gap-2">
+                  <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
                     {currentMonth}
                   </span>
+                  <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
+                      style={{ height: `${monthProgress}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
@@ -134,24 +150,24 @@ function App() {
         {/* Right sidebar */}
         <div 
           onClick={() => setExpandedColumn('right')}
-          className={`${getColumnWidth('right')} bg-white border-l border-gray-200 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden`}
+          className={`${getColumnWidth('right')} bg-tarot-dark border-l border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot hover:shadow-tarot-glow`}
         >
-          <div className="h-full bg-gray-50">
+          <div className="h-full bg-gradient-to-b from-tarot-darker to-tarot-dark">
             {expandedColumn === 'right' ? (
               <div className="h-full overflow-y-auto">
                 {Array.from({ length: currentDay }, (_, i) => currentDay - i).map((day) => (
                   <div 
                     key={day}
-                    className="bg-white border-b border-gray-200 h-[80vh] flex flex-col relative"
+                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative hover:bg-tarot-light/50 transition-colors duration-200"
                   >
-                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-gray-200 bg-white shadow-sm">
-                      <h3 className="text-lg font-semibold text-gray-800">{day}</h3>
+                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
+                      <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{day}</h3>
                     </div>
                     <div className="flex-grow">
                       <textarea
                         value={dayNotes[String(day)] || ''}
                         onChange={(e) => handleDayNoteChange(day, e.target.value)}
-                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none"
+                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-white/90 placeholder-gray-500/50 tracking-wide"
                         placeholder={`Write your notes for day ${day}...`}
                         onClick={(e) => e.stopPropagation()}
                       />
@@ -162,7 +178,7 @@ function App() {
             ) : (
               <div className="h-full flex flex-col items-center">
                 <div className="pt-4">
-                  <span className="text-gray-600 font-semibold text-lg rotate-90">
+                  <span className="text-tarot-gold-light font-semibold text-lg tracking-wider rotate-90">
                     {currentDay}
                   </span>
                 </div>
