@@ -2,6 +2,7 @@
 
 @theme {
   --font-tarot: 'Crimson Pro', serif;
+  --font-viaoda: 'Viaoda Libre', serif;
   
   --color-tarot-dark: #1A1A1A;
   --color-tarot-darker: #121212;
@@ -23,6 +24,149 @@
 @layer components {
   .tarot-border {
     @apply border-2 border-[#B9906B];
+  }
+  
+  .card-corner {
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid var(--color-tarot-gold-light);
+    position: absolute;
+  }
+  
+  .card-corner::after,
+  .card-corner::before {
+    content: "";
+    position: absolute;
+  }
+  
+  .card-corner::after {
+    width: 2rem;
+    height: calc(1rem - 1px);
+  }
+  
+  .card-corner::before {
+    width: calc(1rem - 1px);
+    height: 2rem;
+  }
+  
+  .card-corner.left {
+    left: -0.5rem;
+  }
+  
+  .card-corner.left::after {
+    left: calc(-2px + 1rem);
+    border-left: 1px solid var(--color-tarot-gold-light);
+  }
+  
+  .card-corner.left::before {
+    left: -1px;
+    border-left: 1px solid var(--color-tarot-gold-light);
+  }
+  
+  .card-corner.right {
+    right: -0.5rem;
+  }
+  
+  .card-corner.right::after {
+    right: calc(-2px + 1rem);
+    border-right: 1px solid var(--color-tarot-gold-light);
+  }
+  
+  .card-corner.right::before {
+    right: -1px;
+    border-right: 1px solid var(--color-tarot-gold-light);
+  }
+  
+  .card-corner.top {
+    top: -0.5rem;
+  }
+  
+  .card-corner.top::after {
+    top: -1px;
+    border-top: 1px solid var(--color-tarot-gold-light);
+  }
+  
+  .card-corner.top::before {
+    top: calc(-2px + 1rem);
+    border-top: 1px solid var(--color-tarot-gold-light);
+  }
+  
+  .card-corner.bottom {
+    bottom: -0.5rem;
+  }
+  
+  .card-corner.bottom::after {
+    bottom: -1px;
+    border-bottom: 1px solid var(--color-tarot-gold-light);
+  }
+  
+  .card-corner.bottom::before {
+    bottom: calc(-2px + 1rem);
+    border-bottom: 1px solid var(--color-tarot-gold-light);
+  }
+  
+  .ornate-button {
+    display: flex;
+    all: unset;
+    font-family: var(--font-viaoda);
+    text-align: center;
+    border-top: 1px solid var(--color-tarot-gold-light);
+    border-bottom: 1px solid var(--color-tarot-gold-light);
+    height: 2rem;
+    padding: 0 1.5rem;
+    position: relative;
+    transition: background 200ms ease-in-out;
+    margin: 0 2rem;
+    cursor: pointer;
+    color: var(--color-tarot-gold-light);
+    min-width: 10rem;
+  }
+  
+  .ornate-button:hover {
+    background: var(--color-tarot-light);
+  }
+  
+  .ornate-button-corner {
+    position: absolute;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-bottom: 1px solid var(--color-tarot-gold-light);
+    border-left: 1px solid var(--color-tarot-gold-light);
+    transition: background 200ms ease-in-out;
+  }
+  
+  .ornate-button-corner.left {
+    left: -0.75rem;
+    transform: rotate(45deg);
+  }
+  
+  .ornate-button-corner.right {
+    right: -0.75rem;
+    transform: rotate(-135deg);
+  }
+  
+  .ornate-button:hover .ornate-button-corner {
+    background: var(--color-tarot-light);
+  }
+  
+  .ornate-button-corner::before {
+    content: "";
+    width: 0.75rem;
+    height: 0.75rem;
+    border: 1px solid var(--color-tarot-gold-light);
+    position: absolute;
+    top: calc(1rem - 1px);
+    left: calc(-0.4rem - 1px);
+  }
+  
+  .ornate-button-corner::after {
+    content: "";
+    width: 0.5rem;
+    height: 0.5rem;
+    background: var(--color-tarot-gold-light);
+    position: absolute;
+    top: calc(1rem - 1px);
+    left: calc(-0rem - 1px);
   }
 }
 

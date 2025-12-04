@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TarotClock from './components/TarotClock';
+import UserProfilePopover from './components/UserProfilePopover';
+import placeholderAvatar from './placeholder_avatar.png';
 
 function App() {
   const [expandedColumn, setExpandedColumn] = useState<'left' | 'middle' | 'right'>('middle');
@@ -9,6 +11,28 @@ function App() {
   const [currentDay] = useState(new Date().getDate());
   const [yearProgress] = useState((currentMonthIndex / 11) * 100);
   const [monthProgress] = useState((currentDay / new Date(currentYear, currentMonthIndex + 1, 0).getDate()) * 100);
+  const [dayProgress, setDayProgress] = useState(() => {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const totalMinutes = hours * 60 + minutes;
+    return (totalMinutes / (24 * 60)) * 100;
+  });
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  useEffect(() => {
+    const updateDayProgress = () => {
+      const now = new Date();
+      const hours = now.getHours();
+      const minutes = now.getMinutes();
+      const totalMinutes = hours * 60 + minutes;
+      setDayProgress((totalMinutes / (24 * 60)) * 100);
+    };
+
+    // Update every minute
+    const interval = setInterval(updateDayProgress, 60000);
+    return () => clearInterval(interval);
+  }, []);
   const [yearNotes, setYearNotes] = useState<Record<number, string>>({});
   const [monthNotes, setMonthNotes] = useState<Record<string, string>>({});
   const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
@@ -176,10 +200,16 @@ function App() {
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center">
-                  <div className="pt-4">
-                    <span className="text-tarot-gold-light font-semibold text-lg tracking-wider rotate-90">
+                  <div className="pt-4 flex flex-col items-center gap-2">
+                    <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
                       {currentDay}
                     </span>
+                    <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
+                        style={{ height: `${dayProgress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -188,8 +218,24 @@ function App() {
         </div>
 
         {/* Sidebar with Clock */}
-        <div className="w-20 bg-tarot-dark border-l border-tarot-gold/30 flex flex-col items-center justify-start pt-4">
+        <div className="w-20 bg-tarot-dark border-l border-tarot-gold/30 flex flex-col items-center justify-between pt-4 pb-4">
           <TarotClock />
+          {/* User Avatar with Popover */}
+          <UserProfilePopover isSignedIn={isSignedIn} onSignInChange={setIsSignedIn}>
+            <button className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden">
+              {isSignedIn ? (
+                <div className="text-tarot-gold-light text-lg font-semibold">
+                  U
+                </div>
+              ) : (
+                <img 
+                  src={placeholderAvatar} 
+                  alt="Anonymous avatar" 
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </button>
+          </UserProfilePopover>
         </div>
       </div>
     </div>

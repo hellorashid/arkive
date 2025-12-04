@@ -41,7 +41,7 @@ const TarotClock: React.FC = () => {
       <div className="text-tarot-gold-light text-xl animate-pulse">
         {getTimeSymbol()}
       </div>
-      <div className="text-tarot-gold-light font-tarot text-sm tracking-wider flex items-center gap-1">
+      <div className="text-tarot-gold-light font-mono text-[10px] tracking-wider flex items-center gap-1">
         {formatHours(hours)}:{formatTime(minutes)}:{formatTime(seconds)}
         <div className="flex flex-col gap-0.5 ml-1">
           <div className={`w-1 h-1 rounded-full ${isPM ? 'bg-tarot-gold-light/30' : 'bg-tarot-gold-light'}`} />
