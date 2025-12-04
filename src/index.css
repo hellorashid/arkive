@@ -1,6 +1,18 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --font-tarot: 'Crimson Pro', serif;
+  
+  --color-tarot-dark: #1A1A1A;
+  --color-tarot-darker: #121212;
+  --color-tarot-light: #2A2A2A;
+  --color-tarot-gold: #B9906B;
+  --color-tarot-gold-light: #D4B08C;
+  --color-tarot-gold-dark: #8B6B4A;
+  
+  --shadow-tarot: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-tarot-glow: 0 0 8px rgba(185, 144, 107, 0.15);
+}
 
 @layer base {
   body {
@@ -11,5 +23,15 @@
 @layer components {
   .tarot-border {
     @apply border-2 border-[#B9906B];
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
   }
 }

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Calendar } from 'lucide-react';
+import { useState } from 'react';
+import TarotClock from './components/TarotClock';
 
 function App() {
   const [expandedColumn, setExpandedColumn] = useState<'left' | 'middle' | 'right'>('middle');
@@ -9,17 +9,15 @@ function App() {
   const [currentDay] = useState(new Date().getDate());
   const [yearProgress] = useState((currentMonthIndex / 11) * 100);
   const [monthProgress] = useState((currentDay / new Date(currentYear, currentMonthIndex + 1, 0).getDate()) * 100);
-  const [hoveredMonth, setHoveredMonth] = useState<number | null>(null);
-  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
   const [yearNotes, setYearNotes] = useState<Record<number, string>>({});
   const [monthNotes, setMonthNotes] = useState<Record<string, string>>({});
   const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
 
   const getColumnWidth = (column: 'left' | 'middle' | 'right') => {
     if (column === expandedColumn) {
-      return 'w-9/12'; // Expanded state (3/4 of screen)
+      return 'flex-[10]'; // Expanded state - takes 10 parts
     }
-    return 'w-1/12'; // Collapsed state
+    return 'flex-[1]'; // Collapsed state - takes 1 part each
   };
 
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
@@ -47,28 +45,29 @@ function App() {
 
 
   return (
-    <div className="min-h-screen w-screen bg-gradient-to-br from-tarot-darker to-tarot-dark font-tarot">
+    <div className="min-h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot">
       <div className="flex h-screen">
-        {/* Left sidebar - Year View */}
-        <div 
-          onClick={() => setExpandedColumn('left')}
-          className={`${getColumnWidth('left')} bg-tarot-dark border-r border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot hover:shadow-tarot-glow`}
-        >
-          <div className="h-full bg-gradient-to-b from-tarot-darker to-tarot-dark">
+        {/* Columns container - Year, Month, Day */}
+        <div className="flex flex-1 h-full">
+          {/* Left sidebar - Year View */}
+          <div 
+            onClick={() => setExpandedColumn('left')}
+            className={`${getColumnWidth('left')} bg-tarot-dark border-r border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot`}
+          >
+          <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
             {expandedColumn === 'left' ? (
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto scrollbar-hide">
                 {years.map(year => (
                   <div 
                     key={year}
-                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative hover:bg-tarot-light/50 transition-colors duration-200"
+                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative transition-colors duration-200"
                   >
                     <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
                       <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-tarot-gold-light" />
                         <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{year}</h3>
                       </div>
                     </div>
-                    <div className="flex-grow">
+                    <div className="grow">
                       <textarea
                         value={yearNotes[year] || ''}
                         onChange={(e) => handleYearNoteChange(year, e.target.value)}
@@ -88,7 +87,7 @@ function App() {
                   </span>
                   <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
                     <div 
-                      className="bg-gradient-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
+                      className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
                       style={{ height: `${yearProgress}%` }}
                     />
                   </div>
@@ -101,23 +100,23 @@ function App() {
         {/* Main content */}
         <div 
           onClick={() => setExpandedColumn('middle')}
-          className={`${getColumnWidth('middle')} bg-tarot-dark border-r border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot hover:shadow-tarot-glow`}
+          className={`${getColumnWidth('middle')} bg-tarot-dark border-r border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot`}
         >
-          <div className="h-full bg-gradient-to-b from-tarot-darker to-tarot-dark">
+          <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
             {expandedColumn === 'middle' ? (
-              <div className="h-full overflow-y-auto">
+              <div className="h-full overflow-y-auto scrollbar-hide">
                 {[
                   'January', 'February', 'March', 'April', 'May', 'June',
                   'July', 'August', 'September', 'October', 'November', 'December'
                 ].slice(0, currentMonthIndex + 1).reverse().map((month) => (
                   <div 
                     key={month}
-                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative hover:bg-tarot-light/50 transition-colors duration-200"
+                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative transition-colors duration-200"
                   >
                     <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
                       <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{month}</h3>
                     </div>
-                    <div className="flex-grow">
+                    <div className="grow">
                       <textarea
                         value={monthNotes[month] || ''}
                         onChange={(e) => handleMonthNoteChange(month, e.target.value)}
@@ -137,7 +136,7 @@ function App() {
                   </span>
                   <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
                     <div 
-                      className="bg-gradient-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
+                      className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
                       style={{ height: `${monthProgress}%` }}
                     />
                   </div>
@@ -147,44 +146,50 @@ function App() {
           </div>
         </div>
 
-        {/* Right sidebar */}
-        <div 
-          onClick={() => setExpandedColumn('right')}
-          className={`${getColumnWidth('right')} bg-tarot-dark border-l border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot hover:shadow-tarot-glow`}
-        >
-          <div className="h-full bg-gradient-to-b from-tarot-darker to-tarot-dark">
-            {expandedColumn === 'right' ? (
-              <div className="h-full overflow-y-auto">
-                {Array.from({ length: currentDay }, (_, i) => currentDay - i).map((day) => (
-                  <div 
-                    key={day}
-                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative hover:bg-tarot-light/50 transition-colors duration-200"
-                  >
-                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
-                      <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{day}</h3>
+          {/* Right column - Day View */}
+          <div 
+            onClick={() => setExpandedColumn('right')}
+            className={`${getColumnWidth('right')} bg-tarot-dark border-r border-tarot-gold/30 transition-all duration-300 ease-in-out cursor-pointer overflow-hidden shadow-tarot`}
+          >
+            <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
+              {expandedColumn === 'right' ? (
+                <div className="h-full overflow-y-auto scrollbar-hide">
+                  {Array.from({ length: currentDay }, (_, i) => currentDay - i).map((day) => (
+                    <div 
+                      key={day}
+                      className="bg-tarot-dark/50 border-b border-tarot-gold/20 h-[80vh] flex flex-col relative transition-colors duration-200"
+                    >
+                      <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
+                        <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{day}</h3>
+                      </div>
+                      <div className="grow">
+                        <textarea
+                          value={dayNotes[String(day)] || ''}
+                          onChange={(e) => handleDayNoteChange(day, e.target.value)}
+                          className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-white/90 placeholder-gray-500/50 tracking-wide"
+                          placeholder={`Write your notes for day ${day}...`}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
                     </div>
-                    <div className="flex-grow">
-                      <textarea
-                        value={dayNotes[String(day)] || ''}
-                        onChange={(e) => handleDayNoteChange(day, e.target.value)}
-                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-white/90 placeholder-gray-500/50 tracking-wide"
-                        placeholder={`Write your notes for day ${day}...`}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-full flex flex-col items-center">
-                <div className="pt-4">
-                  <span className="text-tarot-gold-light font-semibold text-lg tracking-wider rotate-90">
-                    {currentDay}
-                  </span>
+                  ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="h-full flex flex-col items-center">
+                  <div className="pt-4">
+                    <span className="text-tarot-gold-light font-semibold text-lg tracking-wider rotate-90">
+                      {currentDay}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* Sidebar with Clock */}
+        <div className="w-20 bg-tarot-dark border-l border-tarot-gold/30 flex flex-col items-center justify-start pt-4">
+          <TarotClock />
         </div>
       </div>
     </div>
