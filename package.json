@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@radix-ui/react-popover": "^1.1.15",
+    "@tiptap/pm": "^3.12.1",
+    "@tiptap/react": "^3.12.1",
+    "@tiptap/starter-kit": "^3.12.1",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

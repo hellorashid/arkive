@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import TarotClock from './components/TarotClock';
 import UserProfilePopover from './components/UserProfilePopover';
+import TiptapEditor from './components/TiptapEditor';
 import placeholderAvatar from './placeholder_avatar.png';
 
 function App() {
@@ -92,12 +93,10 @@ function App() {
                       </div>
                     </div>
                     <div className="grow">
-                      <textarea
-                        value={yearNotes[year] || ''}
-                        onChange={(e) => handleYearNoteChange(year, e.target.value)}
-                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-white/90 placeholder-gray-500/50 tracking-wide"
+                      <TiptapEditor
+                        content={yearNotes[year] || ''}
+                        onChange={(value) => handleYearNoteChange(year, value)}
                         placeholder={`Write your notes for ${year}...`}
-                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
                   </div>
@@ -141,12 +140,10 @@ function App() {
                       <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{month}</h3>
                     </div>
                     <div className="grow">
-                      <textarea
-                        value={monthNotes[month] || ''}
-                        onChange={(e) => handleMonthNoteChange(month, e.target.value)}
-                        className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-white/90 placeholder-gray-500/50 tracking-wide"
+                      <TiptapEditor
+                        content={monthNotes[month] || ''}
+                        onChange={(value) => handleMonthNoteChange(month, value)}
                         placeholder={`Write your notes for ${month}...`}
-                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
                   </div>
@@ -187,12 +184,10 @@ function App() {
                         <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{day}</h3>
                       </div>
                       <div className="grow">
-                        <textarea
-                          value={dayNotes[String(day)] || ''}
-                          onChange={(e) => handleDayNoteChange(day, e.target.value)}
-                          className="w-full h-full px-3 py-2 border-0 focus:outline-none focus:ring-0 resize-none bg-transparent text-white/90 placeholder-gray-500/50 tracking-wide"
+                        <TiptapEditor
+                          content={dayNotes[String(day)] || ''}
+                          onChange={(value) => handleDayNoteChange(day, value)}
                           placeholder={`Write your notes for day ${day}...`}
-                          onClick={(e) => e.stopPropagation()}
                         />
                       </div>
                     </div>
