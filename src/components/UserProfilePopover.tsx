@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import * as Popover from '@radix-ui/react-popover';
+import { X } from 'lucide-react';
 import OrnateButton from './OrnateButton';
 import placeholderAvatar from '../placeholder_avatar.png';
 
@@ -11,27 +14,43 @@ interface UserProfilePopoverProps {
 
 const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children, isSignedIn, onSignInChange }) => {
   const [open, setOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   return (
     <>
       {/* Backdrop overlay */}
-      {open && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 transition-opacity duration-200"
-          onClick={() => setOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={() => setOpen(false)}
+          />
+        )}
+      </AnimatePresence>
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Trigger asChild>
           {children}
         </Popover.Trigger>
-        <Popover.Portal>
-        <Popover.Content
-          className="w-80 bg-tarot-dark border border-tarot-gold-light shadow-tarot-glow p-6 z-50 focus:outline-none relative"
-          side="left"
-          sideOffset={8}
-          align="end"
-        >
+        <AnimatePresence>
+          {open && (
+            <Popover.Portal forceMount>
+              <Popover.Content
+                className="w-80 bg-tarot-dark border border-tarot-gold-light shadow-tarot-glow p-6 z-50 focus:outline-none relative"
+                side="left"
+                sideOffset={8}
+                align="end"
+                asChild
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, x: 10 }}
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, x: 10 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                >
           {/* Corner decorations */}
           <div className="card-corner top left"></div>
           <div className="card-corner top right"></div>
@@ -39,10 +58,20 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children, isSig
           <div className="card-corner bottom right"></div>
 
           {/* User Profile Section */}
-          <div className="mb-6">
+          <motion.div 
+            className="mb-6"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 }}
+          >
             {/* Avatar - Centered */}
             <div className="flex flex-col items-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/40 flex items-center justify-center shadow-tarot mb-3 overflow-hidden">
+              <motion.div 
+                className="w-16 h-16 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/40 flex items-center justify-center shadow-tarot mb-3 overflow-hidden"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.1, ease: 'easeOut' }}
+              >
                 {isSignedIn ? (
                   <div className="text-tarot-gold-light text-2xl font-semibold font-tarot">
                     U
@@ -54,7 +83,7 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children, isSig
                     className="w-full h-full object-cover"
                   />
                 )}
-              </div>
+              </motion.div>
               <div className="text-center">
                 <div className="text-tarot-gold-light font-semibold text-base font-tarot tracking-wide">
                   {isSignedIn ? 'User Name' : 'hi, anon'}
@@ -66,23 +95,52 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children, isSig
             <OrnateButton onClick={() => onSignInChange(!isSignedIn)}>
               {isSignedIn ? 'Sign Out' : 'Sign In'}
             </OrnateButton>
-          </div>
+          </motion.div>
 
           {/* Menu Items */}
-          <div className="space-y-2 mb-6">
-            <button className="w-full text-left px-4 py-2.5 text-sm text-white/90 hover:bg-tarot-gold/10 hover:text-tarot-gold-light rounded border border-transparent hover:border-tarot-gold/20 transition-all duration-200 font-tarot">
-              Preferences
-            </button>
-            <button className="w-full text-left px-4 py-2.5 text-sm text-white/90 hover:bg-tarot-gold/10 hover:text-tarot-gold-light rounded border border-transparent hover:border-tarot-gold/20 transition-all duration-200 font-tarot">
-              Appearance
-            </button>
-            <button className="w-full text-left px-4 py-2.5 text-sm text-white/90 hover:bg-tarot-gold/10 hover:text-tarot-gold-light rounded border border-transparent hover:border-tarot-gold/20 transition-all duration-200 font-tarot">
-              About
-            </button>
-          </div>
+          <motion.div 
+            className="space-y-2 mb-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, delay: 0.15 }}
+          >
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: 0.2 }}
+            >
+              <Link 
+                to="/settings"
+                className="block w-full text-left px-4 py-2.5 text-sm text-white/90 hover:bg-tarot-gold/10 hover:text-tarot-gold-light rounded border border-transparent hover:border-tarot-gold/20 transition-all duration-200 font-tarot"
+                onClick={() => setOpen(false)}
+              >
+                Preferences
+              </Link>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: 0.25 }}
+            >
+              <button 
+                className="w-full text-left px-4 py-2.5 text-sm text-white/90 hover:bg-tarot-gold/10 hover:text-tarot-gold-light rounded border border-transparent hover:border-tarot-gold/20 transition-all duration-200 font-tarot"
+                onClick={() => {
+                  setOpen(false);
+                  setAboutOpen(true);
+                }}
+              >
+                About
+              </button>
+            </motion.div>
+          </motion.div>
 
           {/* Footer Section */}
-          <div className="pt-4 border-t border-tarot-gold/30 relative">
+          <motion.div 
+            className="pt-4 border-t border-tarot-gold/30 relative"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.35 }}
+          >
             {/* Decorative elements */}
             <div className="absolute top-0 left-0 w-4 h-px bg-tarot-gold/50"></div>
             <div className="absolute top-0 right-0 w-4 h-px bg-tarot-gold/50"></div>
@@ -91,10 +149,123 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children, isSig
                 journal v.0.1.1
               </div>
             </div>
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+          </motion.div>
+                </motion.div>
+              </Popover.Content>
+            </Popover.Portal>
+          )}
+        </AnimatePresence>
+      </Popover.Root>
+
+      {/* About Modal */}
+      <AnimatePresence>
+        {aboutOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/70 z-50"
+              onClick={() => setAboutOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            >
+              <div className="w-full max-w-2xl bg-tarot-dark border border-tarot-gold-light shadow-tarot-glow p-8 relative pointer-events-auto">
+                {/* Corner decorations */}
+                <div className="card-corner top left"></div>
+                <div className="card-corner top right"></div>
+                <div className="card-corner bottom left"></div>
+                <div className="card-corner bottom right"></div>
+
+                {/* Close button */}
+                <button 
+                  onClick={() => setAboutOpen(false)}
+                  className="absolute top-4 right-4 text-tarot-gold/60 hover:text-tarot-gold-light transition-colors"
+                >
+                  <X size={20} />
+                </button>
+
+                {/* Content */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                >
+                  <h2 className="text-2xl font-semibold text-tarot-gold-light font-tarot tracking-wide mb-6 text-center">
+                    About Journal
+                  </h2>
+                  
+                  <div className="space-y-4 text-white/80 font-tarot leading-relaxed">
+                    <p>
+                      <span className="text-tarot-gold-light font-semibold">Journal</span> is a reflective writing companion 
+                      designed to help you capture your thoughts across time — from fleeting daily moments to the 
+                      broader arcs of months and years.
+                    </p>
+                    
+                    <p>
+                      The three-column layout mirrors the way memory works: the immediacy of today, the rhythm 
+                      of the month, and the perspective of the year. Each view offers a different lens through 
+                      which to understand your journey.
+                    </p>
+
+                    <p>
+                      With AI-powered prompts and reflections, you can explore your entries more deeply — 
+                      asking questions, generating insights, and uncovering patterns in your writing that 
+                      might otherwise go unnoticed.
+                    </p>
+
+                    <div className="pt-4 border-t border-tarot-gold/20 mt-6">
+                      <p className="text-sm text-tarot-gold/60 italic text-center">
+                        "The unexamined life is not worth living." — Socrates
+                      </p>
+                    </div>
+
+                    <p className="text-center text-tarot-gold-light/80 mt-6">
+                      Journal is completely free to use, open source, and fully private.
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Footer */}
+                <motion.div 
+                  className="mt-8 pt-4 border-t border-tarot-gold/30"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                >
+                  <div className="flex items-center justify-between text-xs font-tarot">
+                    <div className="text-tarot-gold-light/60 tracking-wider">
+                      v0.1.1 • made by{' '}
+                      <a 
+                        href="https://x.com/razberrychai" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-tarot-gold-light hover:text-tarot-gold transition-colors"
+                      >
+                        @razberrychai
+                      </a>
+                    </div>
+                    <a 
+                      href="#" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-tarot-gold-light/60 hover:text-tarot-gold-light transition-colors tracking-wider"
+                    >
+                      View on GitHub
+                    </a>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 };

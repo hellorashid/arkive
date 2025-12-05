@@ -1,6 +1,9 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 import { useEffect } from 'react';
+import { AiContentNode } from '../extensions/AiContentNode';
+import { SlashCommands } from '../extensions/SlashCommands';
 
 interface TiptapEditorProps {
   content: string;
@@ -12,6 +15,11 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
   const editor = useEditor({
     extensions: [
       StarterKit,
+      AiContentNode,
+      SlashCommands,
+      Placeholder.configure({
+        placeholder: placeholder || 'Write something...',
+      }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -20,7 +28,6 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
     editorProps: {
       attributes: {
         class: 'tiptap-editor',
-        'data-placeholder': placeholder || 'Write something...',
       },
     },
   });
@@ -41,4 +48,3 @@ export default function TiptapEditor({ content, onChange, placeholder }: TiptapE
     </div>
   );
 }
-

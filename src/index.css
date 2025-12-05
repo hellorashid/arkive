@@ -194,12 +194,24 @@
   outline: none;
 }
 
-.tiptap-editor p.is-editor-empty:first-child::before {
+.tiptap-editor p.is-empty:first-child::before {
   content: attr(data-placeholder);
   float: left;
-  color: rgba(107, 114, 128, 0.5);
+  color: rgba(185, 144, 107, 0.35);
   pointer-events: none;
   height: 0;
+  font-style: italic;
+}
+
+/* Disable dropcaps for placeholder text */
+.tiptap-editor p.is-empty:first-child::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  padding-right: 0;
+  margin-top: 0;
+  color: inherit;
+  font-family: inherit;
 }
 
 .tiptap-editor p {
@@ -273,4 +285,229 @@
 
 div:has(> .tiptap) {
   height: 100%;
+}
+
+/* Slash Command Menu */
+.slash-command-popup {
+  z-index: 50;
+}
+
+.slash-command-menu {
+  background: var(--color-tarot-darker);
+  border: 1px solid var(--color-tarot-gold);
+  border-radius: 0.5rem;
+  padding: 0.25rem;
+  min-width: 200px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), var(--shadow-tarot-glow);
+}
+
+.slash-command-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  border-radius: 0.375rem;
+  text-align: left;
+  transition: background 150ms ease;
+}
+
+.slash-command-item:hover,
+.slash-command-item.is-selected {
+  background: var(--color-tarot-gold);
+  background: rgba(185, 144, 107, 0.2);
+}
+
+.slash-command-item.is-disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.slash-command-item.is-disabled:hover,
+.slash-command-item.is-disabled.is-selected {
+  background: transparent;
+}
+
+.slash-command-icon {
+  color: var(--color-tarot-gold-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.slash-command-text {
+  flex: 1;
+}
+
+.slash-command-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-tarot-gold-light);
+}
+
+.slash-command-description {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* AI Content Card - Quote Block Style */
+.ai-content-wrapper {
+  margin: 0.75rem 0;
+}
+
+.ai-content-card {
+  border-left: 2px solid rgba(180, 140, 220, 0.7);
+  padding-left: 1rem;
+  padding-right: 0.5rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  position: relative;
+  background: linear-gradient(135deg, rgba(180, 140, 220, 0.06) 0%, transparent 100%);
+}
+
+.ai-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  color: rgba(200, 170, 235, 0.9);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ai-card-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: rgba(200, 170, 235, 0.6);
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity 150ms ease;
+}
+
+.ai-card-close:hover {
+  opacity: 1;
+  color: rgba(200, 170, 235, 1);
+}
+
+.ai-card-input-wrapper {
+  padding: 0.25rem 0;
+}
+
+.ai-card-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(200, 170, 235, 0.4);
+  padding: 0.375rem 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.ai-card-input::placeholder {
+  color: rgba(200, 170, 235, 0.5);
+  font-style: italic;
+}
+
+.ai-card-input:focus {
+  border-color: rgba(200, 170, 235, 0.8);
+}
+
+.ai-card-content {
+  padding: 0.25rem 0;
+}
+
+.ai-card-prompt {
+  color: rgba(200, 170, 235, 0.85);
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-bottom: 0.375rem;
+}
+
+.ai-card-prompt::before {
+  content: '"';
+}
+
+.ai-card-prompt::after {
+  content: '"';
+}
+
+.ai-card-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(200, 170, 235, 0.8);
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+}
+
+.ai-card-response {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Prompt/Reflection mode variant */
+.ai-content-card--prompt {
+  border-left-color: rgba(200, 170, 235, 0.6);
+  background: linear-gradient(135deg, rgba(200, 170, 235, 0.08) 0%, transparent 100%);
+}
+
+.ai-content-card--prompt .ai-card-header {
+  color: rgba(200, 170, 235, 0.85);
+}
+
+.ai-card-reflection {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.95rem;
+  font-style: italic;
+  line-height: 1.6;
+  padding: 0.25rem 0;
+}
+
+.ai-card-error {
+  padding: 0.25rem 0;
+}
+
+.ai-card-error p {
+  color: rgba(229, 115, 115, 0.9);
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.ai-card-retry {
+  background: transparent;
+  border: 1px solid rgba(200, 170, 235, 0.5);
+  color: rgba(200, 170, 235, 0.9);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.ai-card-retry:hover {
+  background: rgba(200, 170, 235, 0.15);
+  border-color: rgba(200, 170, 235, 0.8);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
