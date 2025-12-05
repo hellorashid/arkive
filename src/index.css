@@ -511,3 +511,32 @@ div:has(> .tiptap) {
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+/* Mobile Styles */
+.mobile-content-preview {
+  max-height: none;
+}
+
+.mobile-content-preview p {
+  margin: 0 0 0.5em 0;
+}
+
+.mobile-content-preview p:last-child {
+  margin-bottom: 0;
+}
+
+/* Disable dropcap on mobile preview */
+.mobile-content-preview > p:first-child::first-letter {
+  float: none;
+  font-size: inherit;
+  line-height: inherit;
+  padding-right: 0;
+  margin-top: 0;
+  color: inherit;
+  font-family: inherit;
+}
+
+/* Safe area padding for iOS */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}

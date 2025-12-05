@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TarotClock from '../components/TarotClock';
 import UserProfilePopover from '../components/UserProfilePopover';
 import TiptapEditor from '../components/TiptapEditor';
+import MobileTabBar from '../components/MobileTabBar';
+import MobileDrawer from '../components/MobileDrawer';
+import { useIsMobile } from '../hooks/useIsMobile';
 import placeholderAvatar from '../placeholder_avatar.png';
 import dailyPlaceholders from '../data/placeholder/daily.json';
 import monthlyPlaceholders from '../data/placeholder/monthly.json';
@@ -76,6 +79,7 @@ type DayEntry = {
 };
 
 export default function Journal() {
+  const isMobile = useIsMobile();
   const [expandedColumn, setExpandedColumn] = useState<'left' | 'middle' | 'right'>('right');
   const [currentYear] = useState(new Date().getFullYear());
   const [currentMonth] = useState(new Date().toLocaleString('default', { month: 'short' }));
@@ -91,6 +95,15 @@ export default function Journal() {
     return (totalMinutes / (24 * 60)) * 100;
   });
   const [isSignedIn, setIsSignedIn] = useState(false);
+  
+  // Mobile-specific state
+  const [mobileTab, setMobileTab] = useState<'year' | 'month' | 'day'>('day');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<{
+    type: 'year' | 'month' | 'day';
+    key: string;
+    title: string;
+  } | null>(null);
 
   useEffect(() => {
     const updateDayProgress = () => {
@@ -267,6 +280,205 @@ export default function Journal() {
     currentDay,
   };
 
+  // Mobile drawer helpers
+  const getEditingContent = () => {
+    if (!editingEntry) return '';
+    switch (editingEntry.type) {
+      case 'year':
+        return yearNotes[Number(editingEntry.key)] || '';
+      case 'month':
+        return monthNotes[editingEntry.key] || '';
+      case 'day':
+        return dayNotes[editingEntry.key] || '';
+    }
+  };
+
+  const handleEditingChange = (content: string) => {
+    if (!editingEntry) return;
+    switch (editingEntry.type) {
+      case 'year':
+        handleYearNoteChange(Number(editingEntry.key), content);
+        break;
+      case 'month':
+        handleMonthNoteChange(editingEntry.key, content);
+        break;
+      case 'day':
+        handleDayNoteChange(editingEntry.key, content);
+        break;
+    }
+  };
+
+  const openEditor = (type: 'year' | 'month' | 'day', key: string, title: string) => {
+    setEditingEntry({ type, key, title });
+    setDrawerOpen(true);
+  };
+
+  // Strip HTML tags for display
+  const stripHtml = (html: string) => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <JournalProvider value={journalContextValue}>
+        <div className="min-h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot flex flex-col">
+          {/* Mobile top bar with avatar */}
+          <div className="fixed top-0 right-0 z-30 p-3">
+            <UserProfilePopover isSignedIn={isSignedIn} onSignInChange={setIsSignedIn}>
+              <button className="w-10 h-10 rounded-full bg-tarot-dark/90 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none overflow-hidden backdrop-blur-sm">
+                {isSignedIn ? (
+                  <div className="text-tarot-gold-light text-sm font-semibold">U</div>
+                ) : (
+                  <img 
+                    src={placeholderAvatar} 
+                    alt="Anonymous avatar" 
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </button>
+            </UserProfilePopover>
+          </div>
+          
+          {/* Content Area */}
+          <div className="flex-1 h-0 overflow-y-auto pb-16">
+            {mobileTab === 'year' && years.map(year => (
+              <div 
+                key={year}
+                className="border-b border-tarot-gold/20 min-h-[50vh]"
+              >
+                <div 
+                  className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
+                  onClick={() => openEditor('year', String(year), String(year))}
+                >
+                  <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">{year}</h3>
+                </div>
+                <div 
+                  onClick={() => openEditor('year', String(year), String(year))}
+                  className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
+                >
+                  <div className="text-white/70 text-sm leading-relaxed">
+                    {yearNotes[year] ? (
+                      <div 
+                        className="mobile-content-preview"
+                        dangerouslySetInnerHTML={{ __html: yearNotes[year] }}
+                      />
+                    ) : (
+                      <span className="text-tarot-gold/40 italic">Tap to write...</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {mobileTab === 'month' && [
+              'January', 'February', 'March', 'April', 'May', 'June',
+              'July', 'August', 'September', 'October', 'November', 'December'
+            ].slice(0, currentMonthIndex + 1).reverse().map((month) => (
+              <div 
+                key={month}
+                className="border-b border-tarot-gold/20 min-h-[50vh]"
+              >
+                <div 
+                  className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
+                  onClick={() => openEditor('month', month, month)}
+                >
+                  <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">{month}</h3>
+                </div>
+                <div 
+                  onClick={() => openEditor('month', month, month)}
+                  className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
+                >
+                  <div className="text-white/70 text-sm leading-relaxed">
+                    {monthNotes[month] ? (
+                      <div 
+                        className="mobile-content-preview"
+                        dangerouslySetInnerHTML={{ __html: monthNotes[month] }}
+                      />
+                    ) : (
+                      <span className="text-tarot-gold/40 italic">Tap to write...</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {mobileTab === 'day' && (
+              <>
+                {visibleDays().map((entry) => (
+                  <div 
+                    key={entry.dateKey}
+                    className="border-b border-tarot-gold/20 min-h-[50vh]"
+                  >
+                    <div 
+                      className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
+                      onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
+                    >
+                      <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">
+                        {entry.isFirstOfMonth && (
+                          <span className="text-tarot-gold/60 mr-2">{getMonthName(entry.month)}</span>
+                        )}
+                        {entry.day}
+                      </h3>
+                    </div>
+                    <div 
+                      onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
+                      className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
+                    >
+                      <div className="text-white/70 text-sm leading-relaxed">
+                        {dayNotes[entry.dateKey] ? (
+                          <div 
+                            className="mobile-content-preview"
+                            dangerouslySetInnerHTML={{ __html: dayNotes[entry.dateKey] }}
+                          />
+                        ) : (
+                          <span className="text-tarot-gold/40 italic">Tap to write...</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {/* Load more sentinel */}
+                <div 
+                  ref={loadMoreSentinelRef}
+                  className="h-20 flex items-center justify-center text-tarot-gold/30 text-sm"
+                >
+                  {loadedMonthsCount < 12 ? 'Scroll for more...' : ''}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Tab Bar */}
+          <div className="fixed bottom-0 left-0 right-0 z-40">
+            <MobileTabBar 
+              activeTab={mobileTab} 
+              onTabChange={setMobileTab}
+              currentYear={currentYear}
+              currentMonth={new Date(currentYear, currentMonthIndex, 1).toLocaleString('default', { month: 'short' })}
+              currentDay={currentDay}
+            />
+          </div>
+
+          {/* Editor Drawer */}
+          <MobileDrawer
+            isOpen={drawerOpen}
+            onClose={() => {
+              setDrawerOpen(false);
+              setEditingEntry(null);
+            }}
+            title={editingEntry?.title || ''}
+            content={getEditingContent()}
+            onChange={handleEditingChange}
+          />
+        </div>
+      </JournalProvider>
+    );
+  }
+
+  // Desktop Layout
   return (
     <JournalProvider value={journalContextValue}>
     <div className="min-h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot">
