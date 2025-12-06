@@ -7,6 +7,7 @@ import { useBasic } from '@basictech/react';
 import OrnateButton from './OrnateButton';
 import { useIsMobile } from '../hooks/useIsMobile';
 import placeholderAvatar from '../placeholder_avatar.png';
+import packageJson from '../../package.json';
 
 const VISITED_KEY = 'journal_has_visited';
 
@@ -145,7 +146,7 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
         <div className="absolute top-0 right-0 w-4 h-px bg-tarot-gold/50"></div>
         <div className="text-center">
           <div className="text-tarot-gold-light/80 text-xs font-tarot tracking-wider">
-            journal v.0.1.1
+            Arkive (beta) v{packageJson.version}
           </div>
         </div>
       </motion.div>
@@ -270,7 +271,7 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
                     
                     <div className="space-y-3 sm:space-y-4 text-white/80 font-tarot leading-relaxed text-sm sm:text-base">
                       <p>
-                        <span className="text-tarot-gold-light font-semibold">Arkive</span> is a reflective writing companion 
+                        <span className="text-tarot-gold-light font-semibold">Arkive</span> is a reflective journal 
                         designed to help you capture your thoughts across time — from fleeting daily moments to the 
                         broader arcs of months and years.
                       </p>
@@ -282,9 +283,8 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
                       </p>
 
                       <p>
-                        With AI-powered prompts and reflections, you can explore your entries more deeply — 
-                        asking questions, generating insights, and uncovering patterns in your writing that 
-                        might otherwise go unnoticed.
+                        With AI-powered prompts and reflections, you can explore your entries more deeply,
+                        ask questions and generate insights. Or not, up to you.
                       </p>
 
                       <div className="pt-3 sm:pt-4 border-t border-tarot-gold/20 mt-4 sm:mt-6">
@@ -306,9 +306,9 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3, delay: 0.2 }}
                   >
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-tarot">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs font-tarot">
                       <div className="text-tarot-gold-light/60 tracking-wider">
-                        v0.1.1 • made by{' '}
+                        Arkive (beta) v{packageJson.version} • made by{' '}
                         <a 
                           href="https://x.com/razberrychai" 
                           target="_blank" 
