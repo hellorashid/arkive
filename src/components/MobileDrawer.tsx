@@ -1,14 +1,15 @@
 import { motion, AnimatePresence, useDragControls, PanInfo } from 'framer-motion';
 import { useRef } from 'react';
 import { X } from 'lucide-react';
+import { JSONContent } from '@tiptap/react';
 import TiptapEditor from './TiptapEditor';
 
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  content: string;
-  onChange: (content: string) => void;
+  content: JSONContent | null;
+  onChange: (content: JSONContent) => void;
 }
 
 export default function MobileDrawer({ isOpen, onClose, title, content, onChange }: MobileDrawerProps) {
@@ -76,7 +77,7 @@ export default function MobileDrawer({ isOpen, onClose, title, content, onChange
               <TiptapEditor
                 content={content}
                 onChange={onChange}
-                placeholder="how was your day"
+                placeholder="how was your day?"
               />
             </div>
           </motion.div>
@@ -85,4 +86,3 @@ export default function MobileDrawer({ isOpen, onClose, title, content, onChange
     </AnimatePresence>
   );
 }
-

@@ -3,7 +3,7 @@ import { createContext, useContext, ReactNode } from 'react';
 export interface JournalEntries {
   yearNotes: Record<number, string>;
   monthNotes: Record<string, string>;
-  dayNotes: Record<string, string>;
+  dayNotes: Record<string, string>; // Keyed by full date like "2025-01-06"
   currentYear: number;
   currentMonth: string;
   currentMonthIndex: number;
@@ -30,10 +30,9 @@ export function useJournalContext(): JournalEntries | null {
   return useContext(JournalContext);
 }
 
-// Helper to strip HTML tags and get plain text
-function stripHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
-  return doc.body.textContent || '';
+// Helper to format date key (YYYY-MM-DD)
+function formatDateKey(year: number, month: number, day: number): string {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 // Build a context string for the AI from journal entries
@@ -42,31 +41,23 @@ export function buildJournalContextString(entries: JournalEntries): string {
   
   // Current year entry
   const yearEntry = entries.yearNotes[entries.currentYear];
-  if (yearEntry && yearEntry.trim() && yearEntry !== '<p></p>') {
-    const text = stripHtml(yearEntry).trim();
-    if (text) {
-      parts.push(`## ${entries.currentYear} Year Reflection:\n${text}`);
-    }
+  if (yearEntry && yearEntry.trim()) {
+    parts.push(`## ${entries.currentYear} Year Reflection:\n${yearEntry.trim()}`);
   }
   
   // Current month entry
   const monthEntry = entries.monthNotes[entries.currentMonth];
-  if (monthEntry && monthEntry.trim() && monthEntry !== '<p></p>') {
-    const text = stripHtml(monthEntry).trim();
-    if (text) {
-      parts.push(`## ${entries.currentMonth} ${entries.currentYear} Month Reflection:\n${text}`);
-    }
+  if (monthEntry && monthEntry.trim()) {
+    parts.push(`## ${entries.currentMonth} ${entries.currentYear} Month Reflection:\n${monthEntry.trim()}`);
   }
   
-  // Current month's daily entries
+  // Current month's daily entries (using full date keys)
   const dailyEntries: string[] = [];
   for (let day = 1; day <= entries.currentDay; day++) {
-    const dayEntry = entries.dayNotes[String(day)];
-    if (dayEntry && dayEntry.trim() && dayEntry !== '<p></p>') {
-      const text = stripHtml(dayEntry).trim();
-      if (text) {
-        dailyEntries.push(`### Day ${day}:\n${text}`);
-      }
+    const dateKey = formatDateKey(entries.currentYear, entries.currentMonthIndex, day);
+    const dayEntry = entries.dayNotes[dateKey];
+    if (dayEntry && dayEntry.trim()) {
+      dailyEntries.push(`### Day ${day}:\n${dayEntry.trim()}`);
     }
   }
   
@@ -80,4 +71,3 @@ export function buildJournalContextString(entries: JournalEntries): string {
   
   return `---\nJOURNAL CONTEXT:\n${parts.join('\n\n')}\n---`;
 }
-

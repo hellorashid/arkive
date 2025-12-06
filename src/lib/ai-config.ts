@@ -61,14 +61,14 @@ export const TONE_MODIFIERS: Record<Tone, string> = {
 };
 
 export const DEFAULT_SETTINGS: AISettings = {
-  provider: 'cloud',
+  provider: 'none',
   ollamaModel: 'llama3.2',
   ollamaEndpoint: 'http://localhost:11434',
   byokProvider: 'openai',
   byokApiKey: '',
   byokModel: 'gpt-4o-mini',
   commands: DEFAULT_COMMANDS,
-  tone: 'mystical',
+  tone: 'gentle',
 };
 
 export const OLLAMA_MODELS = [

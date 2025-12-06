@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useBasic } from '@basictech/react';
+import { JSONContent } from '@tiptap/react';
 import TarotClock from '../components/TarotClock';
 import UserProfilePopover from '../components/UserProfilePopover';
 import TiptapEditor from '../components/TiptapEditor';
@@ -7,67 +9,51 @@ import MobileTabBar from '../components/MobileTabBar';
 import MobileDrawer from '../components/MobileDrawer';
 import { useIsMobile } from '../hooks/useIsMobile';
 import placeholderAvatar from '../placeholder_avatar.png';
-import dailyPlaceholders from '../data/placeholder/daily.json';
-import monthlyPlaceholders from '../data/placeholder/monthly.json';
-import yearlyPlaceholders from '../data/placeholder/yearly.json';
 import { JournalProvider } from '../lib/journal-context';
-
-type DailyPlaceholder = { date: string; entry: string };
-type MonthlyPlaceholder = { month: string; entry: string };
-type YearlyPlaceholder = { year: string; entry: string };
-
-const toParagraphHtml = (text: string) => {
-  const escape = (value: string) =>
-    value
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-  const paragraphs = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => `<p>${escape(line)}</p>`)
-    .join('');
-
-  return paragraphs || '<p></p>';
-};
-
-const parseDate = (isoDate: string) => {
-  const [yearStr, monthStr, dayStr] = isoDate.split('-');
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  const day = Number(dayStr);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
-    return null;
-  }
-  // Use local-time construction to avoid UTC offset shifting the date
-  return new Date(year, month - 1, day);
-};
-
-const parseMonth = (isoMonth: string) => {
-  const [yearStr, monthStr] = isoMonth.split('-');
-  const year = Number(yearStr);
-  const month = Number(monthStr);
-  if (Number.isNaN(year) || Number.isNaN(month)) {
-    return null;
-  }
-  return { year, month };
-};
 
 // Helper to get days in a month
 const getDaysInMonth = (year: number, month: number) => {
   return new Date(year, month + 1, 0).getDate();
 };
 
-// Helper to format date key
-const formatDateKey = (year: number, month: number, day: number) => {
+// Helper to format date key for day entries (YYYY-MM-DD)
+const formatDayDateKey = (year: number, month: number, day: number) => {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
+// Helper to format date key for month entries (YYYY-MM)
+const formatMonthDateKey = (year: number, month: number) => {
+  return `${year}-${String(month + 1).padStart(2, '0')}`;
 };
 
 // Helper to get month name
 const getMonthName = (month: number) => {
   return new Date(2000, month, 1).toLocaleString('default', { month: 'long' });
+};
+
+// Helper to determine entry type from date string
+const getEntryType = (date: string): 'year' | 'month' | 'day' => {
+  const parts = date.split('-');
+  if (parts.length === 1) return 'year';
+  if (parts.length === 2) return 'month';
+  return 'day';
+};
+
+// Helper to extract plain text from TipTap JSON for preview
+const getTextFromJSON = (json: JSONContent | null): string => {
+  if (!json || !json.content) return '';
+  
+  const extractText = (node: JSONContent): string => {
+    if (node.type === 'text' && node.text) {
+      return node.text;
+    }
+    if (node.content) {
+      return node.content.map(extractText).join('');
+    }
+    return '';
+  };
+  
+  return json.content.map(extractText).join('\n');
 };
 
 type DayEntry = {
@@ -78,8 +64,17 @@ type DayEntry = {
   isFirstOfMonth: boolean;
 };
 
+// Type for journal entries in the database
+type JournalEntry = {
+  id: string;
+  date: string;
+  content: JSONContent;
+};
+
 export default function Journal() {
   const isMobile = useIsMobile();
+  const { db, isSignedIn, user } = useBasic();
+  
   const [expandedColumn, setExpandedColumn] = useState<'left' | 'middle' | 'right'>('right');
   const [currentYear] = useState(new Date().getFullYear());
   const [currentMonth] = useState(new Date().toLocaleString('default', { month: 'short' }));
@@ -94,7 +89,6 @@ export default function Journal() {
     const totalMinutes = hours * 60 + minutes;
     return (totalMinutes / (24 * 60)) * 100;
   });
-  const [isSignedIn, setIsSignedIn] = useState(false);
   
   // Mobile-specific state
   const [mobileTab, setMobileTab] = useState<'year' | 'month' | 'day'>('day');
@@ -118,40 +112,50 @@ export default function Journal() {
     return () => clearInterval(interval);
   }, []);
 
-  const [yearNotes, setYearNotes] = useState<Record<number, string>>(() => {
-    const map: Record<number, string> = {};
-    (yearlyPlaceholders as YearlyPlaceholder[]).forEach(({ year, entry }) => {
-      const yearNumber = Number(year);
-      if (!Number.isNaN(yearNumber)) {
-        map[yearNumber] = toParagraphHtml(entry);
-      }
-    });
-    return map;
-  });
+  // Journal notes stored as TipTap JSON, keyed by date string
+  const [yearNotes, setYearNotes] = useState<Record<string, JSONContent>>({});
+  const [monthNotes, setMonthNotes] = useState<Record<string, JSONContent>>({});
+  const [dayNotes, setDayNotes] = useState<Record<string, JSONContent>>({});
+  
+  // Entry ID lookup for updates
+  const [entryIds, setEntryIds] = useState<Record<string, string>>({});
 
-  const [monthNotes, setMonthNotes] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    (monthlyPlaceholders as MonthlyPlaceholder[]).forEach(({ month, entry }) => {
-      const parsed = parseMonth(month);
-      if (parsed && parsed.year === currentYear) {
-        const monthName = new Date(parsed.year, parsed.month - 1, 1).toLocaleString('default', { month: 'long' });
-        map[monthName] = toParagraphHtml(entry);
+  // Load entries from Basic DB
+  useEffect(() => {
+    if (!db) return;
+    
+    const loadEntries = async () => {
+      try {
+        const entries = await db.collection('entries').getAll() as JournalEntry[];
+        const newYearNotes: Record<string, JSONContent> = {};
+        const newMonthNotes: Record<string, JSONContent> = {};
+        const newDayNotes: Record<string, JSONContent> = {};
+        const newEntryIds: Record<string, string> = {};
+        
+        for (const entry of entries) {
+          const type = getEntryType(entry.date);
+          newEntryIds[entry.date] = entry.id;
+          
+          if (type === 'year') {
+            newYearNotes[entry.date] = entry.content;
+          } else if (type === 'month') {
+            newMonthNotes[entry.date] = entry.content;
+          } else {
+            newDayNotes[entry.date] = entry.content;
+          }
+        }
+        
+        setYearNotes(newYearNotes);
+        setMonthNotes(newMonthNotes);
+        setDayNotes(newDayNotes);
+        setEntryIds(newEntryIds);
+      } catch (error) {
+        console.error('Failed to load journal entries:', error);
       }
-    });
-    return map;
-  });
-
-  const [dayNotes, setDayNotes] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    (dailyPlaceholders as DailyPlaceholder[]).forEach(({ date, entry }) => {
-      const parsed = parseDate(date);
-      if (parsed) {
-        const dateKey = formatDateKey(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
-        map[dateKey] = toParagraphHtml(entry);
-      }
-    });
-    return map;
-  });
+    };
+    
+    loadEntries();
+  }, [db]);
 
   // Track how many months back we've loaded (0 = current month only)
   const [loadedMonthsCount, setLoadedMonthsCount] = useState(1);
@@ -180,7 +184,7 @@ export default function Journal() {
           year,
           month,
           day: d,
-          dateKey: formatDateKey(year, month, d),
+          dateKey: formatDayDateKey(year, month, d),
           isFirstOfMonth: d === daysInThisMonth && m > 0,
         });
       }
@@ -256,24 +260,68 @@ export default function Journal() {
 
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
-  const handleYearNoteChange = (year: number, value: string) => {
-    setYearNotes(prev => ({ ...prev, [year]: value }));
+  // Save entry to Basic DB (works both signed in and out - SDK handles local storage)
+  const saveEntry = async (date: string, content: JSONContent) => {
+    if (!db) return;
+    
+    try {
+      const existingId = entryIds[date];
+      if (existingId) {
+        // Update existing entry
+        await db.collection('entries').update(existingId, {
+          date,
+          content,
+        });
+      } else {
+        // Add new entry
+        const result = await db.collection('entries').add({
+          date,
+          content,
+        });
+        if (result?.id) {
+          setEntryIds(prev => ({ ...prev, [date]: result.id }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to save journal entry:', error);
+    }
   };
 
-  const handleMonthNoteChange = (month: string, value: string) => {
-    setMonthNotes(prev => ({ ...prev, [month]: value }));
+  const handleYearNoteChange = (year: number, value: JSONContent) => {
+    const dateKey = String(year);
+    setYearNotes(prev => ({ ...prev, [dateKey]: value }));
+    saveEntry(dateKey, value);
   };
 
-  const handleDayNoteChange = (dateKey: string, value: string) => {
+  const handleMonthNoteChange = (year: number, month: number, value: JSONContent) => {
+    const dateKey = formatMonthDateKey(year, month);
+    setMonthNotes(prev => ({ ...prev, [dateKey]: value }));
+    saveEntry(dateKey, value);
+  };
+
+  const handleDayNoteChange = (dateKey: string, value: JSONContent) => {
     setDayNotes(prev => ({ ...prev, [dateKey]: value }));
+    saveEntry(dateKey, value);
   };
 
   const currentMonthName = new Date(currentYear, currentMonthIndex, 1).toLocaleString('default', { month: 'long' });
 
+  // For JournalProvider, we need to adapt the data format (convert JSON to text for AI context)
   const journalContextValue = {
-    yearNotes,
-    monthNotes,
-    dayNotes,
+    yearNotes: Object.fromEntries(
+      Object.entries(yearNotes).map(([k, v]) => [Number(k), getTextFromJSON(v)])
+    ) as Record<number, string>,
+    monthNotes: Object.fromEntries(
+      Object.entries(monthNotes).map(([dateKey, v]) => {
+        // Convert YYYY-MM back to month name for compatibility
+        const [, monthStr] = dateKey.split('-');
+        const monthIndex = parseInt(monthStr, 10) - 1;
+        return [getMonthName(monthIndex), getTextFromJSON(v)];
+      })
+    ) as Record<string, string>,
+    dayNotes: Object.fromEntries(
+      Object.entries(dayNotes).map(([k, v]) => [k, getTextFromJSON(v)])
+    ) as Record<string, string>,
     currentYear,
     currentMonth: currentMonthName,
     currentMonthIndex,
@@ -281,27 +329,30 @@ export default function Journal() {
   };
 
   // Mobile drawer helpers
-  const getEditingContent = () => {
-    if (!editingEntry) return '';
+  const getEditingContent = (): JSONContent | null => {
+    if (!editingEntry) return null;
     switch (editingEntry.type) {
       case 'year':
-        return yearNotes[Number(editingEntry.key)] || '';
+        return yearNotes[editingEntry.key] || null;
       case 'month':
-        return monthNotes[editingEntry.key] || '';
+        return monthNotes[editingEntry.key] || null;
       case 'day':
-        return dayNotes[editingEntry.key] || '';
+        return dayNotes[editingEntry.key] || null;
     }
   };
 
-  const handleEditingChange = (content: string) => {
+  const handleEditingChange = (content: JSONContent) => {
     if (!editingEntry) return;
     switch (editingEntry.type) {
       case 'year':
         handleYearNoteChange(Number(editingEntry.key), content);
         break;
-      case 'month':
-        handleMonthNoteChange(editingEntry.key, content);
+      case 'month': {
+        // Parse YYYY-MM format
+        const [yearStr, monthStr] = editingEntry.key.split('-');
+        handleMonthNoteChange(Number(yearStr), Number(monthStr) - 1, content);
         break;
+      }
       case 'day':
         handleDayNoteChange(editingEntry.key, content);
         break;
@@ -313,12 +364,9 @@ export default function Journal() {
     setDrawerOpen(true);
   };
 
-  // Strip HTML tags for display
-  const stripHtml = (html: string) => {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html;
-    return tmp.textContent || tmp.innerText || '';
-  };
+  // Get user display info
+  const userName = user?.name || 'User';
+  const userInitial = userName.charAt(0).toUpperCase();
 
   // Mobile Layout
   if (isMobile) {
@@ -327,10 +375,10 @@ export default function Journal() {
         <div className="h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot">
           {/* Mobile top bar with avatar */}
           <div className="fixed top-0 right-0 z-30 p-3">
-            <UserProfilePopover isSignedIn={isSignedIn} onSignInChange={setIsSignedIn}>
+            <UserProfilePopover>
               <button className="w-10 h-10 rounded-full bg-tarot-dark/90 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none overflow-hidden backdrop-blur-sm">
                 {isSignedIn ? (
-                  <div className="text-tarot-gold-light text-sm font-semibold">U</div>
+                  <div className="text-tarot-gold-light text-sm font-semibold">{userInitial}</div>
                 ) : (
                   <img 
                     src={placeholderAvatar} 
@@ -344,102 +392,112 @@ export default function Journal() {
           
           {/* Content Area - fixed position for reliable sticky behavior */}
           <div className="fixed top-0 left-0 right-0 bottom-14 overflow-y-auto">
-            {mobileTab === 'year' && years.map(year => (
-              <div 
-                key={year}
-                className="border-b border-tarot-gold/20 min-h-[50vh]"
-              >
+            {mobileTab === 'year' && years.map(year => {
+              const content = yearNotes[String(year)];
+              const previewText = getTextFromJSON(content);
+              return (
                 <div 
-                  className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
-                  onClick={() => openEditor('year', String(year), String(year))}
+                  key={year}
+                  className="border-b border-tarot-gold/20 min-h-[50vh]"
                 >
-                  <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">{year}</h3>
-                </div>
-                <div 
-                  onClick={() => openEditor('year', String(year), String(year))}
-                  className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
-                >
-                  <div className="text-white/70 text-sm leading-relaxed">
-                    {yearNotes[year] ? (
-                      <div 
-                        className="mobile-content-preview"
-                        dangerouslySetInnerHTML={{ __html: yearNotes[year] }}
-                      />
-                    ) : (
-                      <span className="text-tarot-gold/40 italic">Tap to write...</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {mobileTab === 'month' && [
-              'January', 'February', 'March', 'April', 'May', 'June',
-              'July', 'August', 'September', 'October', 'November', 'December'
-            ].slice(0, currentMonthIndex + 1).reverse().map((month) => (
-              <div 
-                key={month}
-                className="border-b border-tarot-gold/20 min-h-[50vh]"
-              >
-                <div 
-                  className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
-                  onClick={() => openEditor('month', month, month)}
-                >
-                  <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">{month}</h3>
-                </div>
-                <div 
-                  onClick={() => openEditor('month', month, month)}
-                  className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
-                >
-                  <div className="text-white/70 text-sm leading-relaxed">
-                    {monthNotes[month] ? (
-                      <div 
-                        className="mobile-content-preview"
-                        dangerouslySetInnerHTML={{ __html: monthNotes[month] }}
-                      />
-                    ) : (
-                      <span className="text-tarot-gold/40 italic">Tap to write...</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {mobileTab === 'day' && (
-              <>
-                {visibleDays().map((entry) => (
                   <div 
-                    key={entry.dateKey}
+                    className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
+                    onClick={() => openEditor('year', String(year), String(year))}
+                  >
+                    <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">{year}</h3>
+                  </div>
+                  <div 
+                    onClick={() => openEditor('year', String(year), String(year))}
+                    className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
+                  >
+                    <div className="text-white/70 text-sm leading-relaxed">
+                      {previewText ? (
+                        <div className="mobile-content-preview line-clamp-4">
+                          {previewText}
+                        </div>
+                      ) : (
+                        <span className="text-tarot-gold/40 italic">Tap to write...</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {mobileTab === 'month' && Array.from({ length: currentMonthIndex + 1 }, (_, i) => i)
+              .reverse()
+              .map((monthIndex) => {
+                const dateKey = formatMonthDateKey(currentYear, monthIndex);
+                const monthName = getMonthName(monthIndex);
+                const content = monthNotes[dateKey];
+                const previewText = getTextFromJSON(content);
+                return (
+                  <div 
+                    key={dateKey}
                     className="border-b border-tarot-gold/20 min-h-[50vh]"
                   >
                     <div 
                       className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
-                      onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
+                      onClick={() => openEditor('month', dateKey, monthName)}
                     >
-                      <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">
-                        {entry.isFirstOfMonth && (
-                          <span className="text-tarot-gold/60 mr-2">{getMonthName(entry.month)}</span>
-                        )}
-                        {entry.day}
-                      </h3>
+                      <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">{monthName}</h3>
                     </div>
                     <div 
-                      onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
+                      onClick={() => openEditor('month', dateKey, monthName)}
                       className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
                     >
                       <div className="text-white/70 text-sm leading-relaxed">
-                        {dayNotes[entry.dateKey] ? (
-                          <div 
-                            className="mobile-content-preview"
-                            dangerouslySetInnerHTML={{ __html: dayNotes[entry.dateKey] }}
-                          />
+                        {previewText ? (
+                          <div className="mobile-content-preview line-clamp-4">
+                            {previewText}
+                          </div>
                         ) : (
                           <span className="text-tarot-gold/40 italic">Tap to write...</span>
                         )}
                       </div>
                     </div>
                   </div>
-                ))}
+                );
+              })}
+
+            {mobileTab === 'day' && (
+              <>
+                {visibleDays().map((entry) => {
+                  const content = dayNotes[entry.dateKey];
+                  const previewText = getTextFromJSON(content);
+                  return (
+                    <div 
+                      key={entry.dateKey}
+                      className="border-b border-tarot-gold/20 min-h-[50vh]"
+                    >
+                      <div 
+                        className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
+                        onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
+                      >
+                        <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">
+                          {entry.isFirstOfMonth && (
+                            <span className="text-tarot-gold/60 mr-2">{getMonthName(entry.month)}</span>
+                          )}
+                          {entry.day}
+                        </h3>
+                      </div>
+                      <div 
+                        onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
+                        className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
+                      >
+                        <div className="text-white/70 text-sm leading-relaxed">
+                          {previewText ? (
+                            <div className="mobile-content-preview line-clamp-4">
+                              {previewText}
+                            </div>
+                          ) : (
+                            <span className="text-tarot-gold/40 italic">Tap to write...</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
                 {/* Load more sentinel */}
                 <div 
                   ref={loadMoreSentinelRef}
@@ -507,9 +565,9 @@ export default function Journal() {
                       </div>
                       <div className="grow">
                         <TiptapEditor
-                          content={yearNotes[year] || ''}
+                          content={yearNotes[String(year)] || null}
                           onChange={(value) => handleYearNoteChange(year, value)}
-                          placeholder="how was your day"
+                          placeholder="how was your year?"
                         />
                       </div>
                     </div>
@@ -543,26 +601,29 @@ export default function Journal() {
             <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
               {expandedColumn === 'middle' ? (
                 <div className="h-full overflow-y-auto scrollbar-hide">
-                  {[
-                    'January', 'February', 'March', 'April', 'May', 'June',
-                    'July', 'August', 'September', 'October', 'November', 'December'
-                  ].slice(0, currentMonthIndex + 1).reverse().map((month) => (
-                    <div 
-                      key={month}
-                      className="bg-tarot-dark/50 border-b border-tarot-gold/20 min-h-[60vh] flex flex-col relative transition-colors duration-200"
-                    >
-                      <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
-                        <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{month}</h3>
-                      </div>
-                      <div className="grow">
-                        <TiptapEditor
-                          content={monthNotes[month] || ''}
-                          onChange={(value) => handleMonthNoteChange(month, value)}
-                          placeholder="how was your day"
-                        />
-                      </div>
-                    </div>
-                  ))}
+                  {Array.from({ length: currentMonthIndex + 1 }, (_, i) => i)
+                    .reverse()
+                    .map((monthIndex) => {
+                      const dateKey = formatMonthDateKey(currentYear, monthIndex);
+                      const monthName = getMonthName(monthIndex);
+                      return (
+                        <div 
+                          key={dateKey}
+                          className="bg-tarot-dark/50 border-b border-tarot-gold/20 min-h-[60vh] flex flex-col relative transition-colors duration-200"
+                        >
+                          <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
+                            <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{monthName}</h3>
+                          </div>
+                          <div className="grow">
+                            <TiptapEditor
+                              content={monthNotes[dateKey] || null}
+                              onChange={(value) => handleMonthNoteChange(currentYear, monthIndex, value)}
+                              placeholder="how was your month?"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               ) : (
                 <div className="h-full flex flex-col items-center">
@@ -618,9 +679,9 @@ export default function Journal() {
                       </div>
                       <div className="grow">
                         <TiptapEditor
-                          content={dayNotes[entry.dateKey] || ''}
+                          content={dayNotes[entry.dateKey] || null}
                           onChange={(value) => handleDayNoteChange(entry.dateKey, value)}
-                          placeholder="how was your day"
+                          placeholder="how was your day?"
                         />
                       </div>
                     </div>
@@ -695,10 +756,10 @@ export default function Journal() {
         <div className="w-20 bg-tarot-dark border-l border-tarot-gold/30 flex flex-col items-center justify-between pt-4 pb-4">
           <TarotClock />
           <div className="flex flex-col items-center gap-3">
-            <UserProfilePopover isSignedIn={isSignedIn} onSignInChange={setIsSignedIn}>
+            <UserProfilePopover>
               <button className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden">
                 {isSignedIn ? (
-                  <div className="text-tarot-gold-light text-lg font-semibold">U</div>
+                  <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
                 ) : (
                   <img 
                     src={placeholderAvatar} 
@@ -715,4 +776,3 @@ export default function Journal() {
     </JournalProvider>
   );
 }
-
