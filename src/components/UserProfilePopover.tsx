@@ -265,12 +265,12 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
                     transition={{ duration: 0.3, delay: 0.1 }}
                   >
                     <h2 className="text-xl sm:text-2xl font-semibold text-tarot-gold-light font-tarot tracking-wide mb-4 sm:mb-6 text-center">
-                      About Journal
+                      About Arkive
                     </h2>
                     
                     <div className="space-y-3 sm:space-y-4 text-white/80 font-tarot leading-relaxed text-sm sm:text-base">
                       <p>
-                        <span className="text-tarot-gold-light font-semibold">Journal</span> is a reflective writing companion 
+                        <span className="text-tarot-gold-light font-semibold">Arkive</span> is a reflective writing companion 
                         designed to help you capture your thoughts across time — from fleeting daily moments to the 
                         broader arcs of months and years.
                       </p>
@@ -294,7 +294,7 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
                       </div>
 
                       <p className="text-center text-tarot-gold-light/80 mt-4 sm:mt-6 text-sm sm:text-base">
-                        Journal is completely free to use, open source, and fully private.
+                        Arkive is completely free to use, open source, and fully private.
                       </p>
                     </div>
                   </motion.div>

@@ -29,7 +29,7 @@ app.post('/api/chat', async (c) => {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://journal.app',
-        'X-Title': 'Tarot Journal',
+        'X-Title': 'Arkive',
       },
       body: JSON.stringify({
         model: OPENROUTER_MODEL,
