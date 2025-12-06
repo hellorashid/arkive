@@ -319,7 +319,7 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
                         </a>
                       </div>
                       <a 
-                        href="#" 
+                        href="https://github.com/hellorashid/arkive" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-tarot-gold-light/60 hover:text-tarot-gold-light transition-colors tracking-wider"
