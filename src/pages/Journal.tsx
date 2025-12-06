@@ -324,7 +324,7 @@ export default function Journal() {
   if (isMobile) {
     return (
       <JournalProvider value={journalContextValue}>
-        <div className="min-h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot flex flex-col">
+        <div className="h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot">
           {/* Mobile top bar with avatar */}
           <div className="fixed top-0 right-0 z-30 p-3">
             <UserProfilePopover isSignedIn={isSignedIn} onSignInChange={setIsSignedIn}>
@@ -342,8 +342,8 @@ export default function Journal() {
             </UserProfilePopover>
           </div>
           
-          {/* Content Area */}
-          <div className="flex-1 h-0 overflow-y-auto pb-16">
+          {/* Content Area - fixed position for reliable sticky behavior */}
+          <div className="fixed top-0 left-0 right-0 bottom-14 overflow-y-auto">
             {mobileTab === 'year' && years.map(year => (
               <div 
                 key={year}
