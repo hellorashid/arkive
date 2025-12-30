@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Save, RotateCcw, Server, Key, Cloud, Plus, Trash2, Sparkles, MessageCircleQuestion, Lightbulb, Heart, Star, Ban, Database, Cpu, Upload } from 'lucide-react';
+import { ArrowLeft, Save, RotateCcw, Server, Key, Cloud, Plus, Trash2, Sparkles, MessageCircleQuestion, Lightbulb, Heart, Star, Ban, Database, Cpu, Upload, Smartphone, Check, X, Download, Info } from 'lucide-react';
 import { useBasic } from '@basictech/react';
+
+// PWA install prompt event type
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 import { 
   AISettings, 
   Command,
@@ -62,11 +68,67 @@ export default function Settings() {
   const [loadingTestData, setLoadingTestData] = useState(false);
   const [testDataLoaded, setTestDataLoaded] = useState(false);
   
+  // PWA state
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isPWAInstalled, setIsPWAInstalled] = useState(false);
+  const [isPWASupported, setIsPWASupported] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+  
   const { db, isSignedIn, signout } = useBasic();
 
   useEffect(() => {
     setSettings(getAISettings());
   }, []);
+
+  // PWA detection and install prompt capture
+  useEffect(() => {
+    // Check if already installed (standalone mode)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+      || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setIsPWAInstalled(isStandalone);
+
+    // Check if PWA is supported
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    setIsPWASupported(hasServiceWorker);
+
+    // Capture the install prompt
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    // Listen for successful installation
+    const handleAppInstalled = () => {
+      setIsPWAInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (!deferredPrompt) return;
+    
+    setIsInstalling(true);
+    try {
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsPWAInstalled(true);
+      }
+      setDeferredPrompt(null);
+    } catch (error) {
+      console.error('PWA installation failed:', error);
+    } finally {
+      setIsInstalling(false);
+    }
+  };
 
   const handleSave = () => {
     saveAISettings(settings);
@@ -562,6 +624,96 @@ export default function Settings() {
         {/* Data Tab */}
         {activeTab === 'data' && (
           <>
+            {/* PWA Section */}
+            <section className="mb-8">
+              <h2 className="text-lg text-tarot-gold-light mb-4 tracking-wide flex items-center gap-2">
+                <Smartphone size={20} />
+                Progressive Web App
+              </h2>
+              <div className="p-4 bg-tarot-dark/50 border border-tarot-gold/20 rounded-lg space-y-4">
+                {/* Status indicators */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-sm">PWA Support</span>
+                    <div className="flex items-center gap-2">
+                      {isPWASupported ? (
+                        <>
+                          <Check size={16} className="text-green-400" />
+                          <span className="text-green-400 text-sm">Supported</span>
+                        </>
+                      ) : (
+                        <>
+                          <X size={16} className="text-red-400" />
+                          <span className="text-red-400 text-sm">Not Supported</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70 text-sm">Installation Status</span>
+                    <div className="flex items-center gap-2">
+                      {isPWAInstalled ? (
+                        <>
+                          <Check size={16} className="text-green-400" />
+                          <span className="text-green-400 text-sm">Installed</span>
+                        </>
+                      ) : deferredPrompt ? (
+                        <>
+                          <Download size={16} className="text-tarot-gold" />
+                          <span className="text-tarot-gold text-sm">Ready to Install</span>
+                        </>
+                      ) : (
+                        <>
+                          <Info size={16} className="text-white/50" />
+                          <span className="text-white/50 text-sm">Not Installed</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Install button */}
+                {!isPWAInstalled && deferredPrompt && (
+                  <button
+                    onClick={handleInstallPWA}
+                    disabled={isInstalling}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-tarot-gold/20 border border-tarot-gold rounded-lg text-tarot-gold-light hover:bg-tarot-gold/30 transition-colors"
+                  >
+                    <Download size={18} />
+                    {isInstalling ? 'Installing...' : 'Install Arkive App'}
+                  </button>
+                )}
+
+                {/* Installation instructions */}
+                <div className="pt-2 border-t border-tarot-gold/10">
+                  <h3 className="text-sm text-tarot-gold mb-2 flex items-center gap-2">
+                    <Info size={14} />
+                    Installation Instructions
+                  </h3>
+                  {isPWAInstalled ? (
+                    <p className="text-white/60 text-sm">
+                      Arkive is installed! You can find it on your home screen or in your app drawer.
+                    </p>
+                  ) : deferredPrompt ? (
+                    <p className="text-white/60 text-sm">
+                      Click the "Install Arkive App" button above to add Arkive to your home screen for quick access and offline use.
+                    </p>
+                  ) : (
+                    <div className="text-white/60 text-sm space-y-2">
+                      <p className="font-medium text-white/70">To install Arkive:</p>
+                      <ul className="list-disc list-inside space-y-1 ml-2">
+                        <li><span className="text-tarot-gold/80">Chrome/Edge (Desktop):</span> Click the install icon in the address bar, or use the menu → "Install Arkive"</li>
+                        <li><span className="text-tarot-gold/80">Safari (iOS):</span> Tap the Share button → "Add to Home Screen"</li>
+                        <li><span className="text-tarot-gold/80">Chrome (Android):</span> Tap the menu (⋮) → "Add to Home Screen" or "Install app"</li>
+                        <li><span className="text-tarot-gold/80">Firefox:</span> PWA installation may require using Chrome or Edge</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
             <section className="mb-8">
               <h2 className="text-lg text-tarot-gold-light mb-4 tracking-wide">Test Data</h2>
               <div className="p-4 bg-tarot-dark/50 border border-tarot-gold/20 rounded-lg">
