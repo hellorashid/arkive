@@ -7,6 +7,7 @@ import UserProfilePopover from '../components/UserProfilePopover';
 import TiptapEditor from '../components/TiptapEditor';
 import MobileTabBar from '../components/MobileTabBar';
 import MobileDrawer from '../components/MobileDrawer';
+import MobileHome from '../components/MobileHome';
 import { useIsMobile } from '../hooks/useIsMobile';
 import placeholderAvatar from '../placeholder_avatar.png';
 import { JournalProvider } from '../lib/journal-context';
@@ -91,7 +92,7 @@ export default function Journal() {
   });
   
   // Mobile-specific state
-  const [mobileTab, setMobileTab] = useState<'year' | 'month' | 'day'>('day');
+  const [mobileTab, setMobileTab] = useState<'year' | 'month' | 'day' | 'home'>('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<{
     type: 'year' | 'month' | 'day';
@@ -392,6 +393,16 @@ export default function Journal() {
           
           {/* Content Area - fixed position for reliable sticky behavior */}
           <div className="fixed top-0 left-0 right-0 bottom-14 overflow-y-auto">
+            {mobileTab === 'home' && (
+              <MobileHome
+                dayNotes={dayNotes}
+                currentYear={currentYear}
+                currentMonthIndex={currentMonthIndex}
+                currentDay={currentDay}
+                userName={isSignedIn ? userName : undefined}
+              />
+            )}
+            
             {mobileTab === 'year' && years.map(year => {
               const content = yearNotes[String(year)];
               const previewText = getTextFromJSON(content);
