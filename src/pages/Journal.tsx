@@ -412,7 +412,7 @@ export default function Journal() {
                   >
                     <div className="text-white/70 text-sm leading-relaxed">
                       {previewText ? (
-                        <div className="mobile-content-preview line-clamp-4">
+                        <div className="mobile-content-preview whitespace-pre-wrap">
                           {previewText}
                         </div>
                       ) : (
@@ -448,7 +448,7 @@ export default function Journal() {
                     >
                       <div className="text-white/70 text-sm leading-relaxed">
                         {previewText ? (
-                          <div className="mobile-content-preview line-clamp-4">
+                          <div className="mobile-content-preview whitespace-pre-wrap">
                             {previewText}
                           </div>
                         ) : (
@@ -487,7 +487,7 @@ export default function Journal() {
                       >
                         <div className="text-white/70 text-sm leading-relaxed">
                           {previewText ? (
-                            <div className="mobile-content-preview line-clamp-4">
+                            <div className="mobile-content-preview whitespace-pre-wrap">
                               {previewText}
                             </div>
                           ) : (
