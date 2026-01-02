@@ -37,7 +37,7 @@ export default function MobileTabBar({
   currentDay 
 }: MobileTabBarProps) {
   const tabs: { id: Tab; label: string; isIcon?: boolean }[] = [
-    { id: 'year', label: `'${String(currentYear).slice(-2)}` },
+    { id: 'year', label: String(currentYear) },
     { id: 'month', label: currentMonth },
     { id: 'day', label: String(currentDay).padStart(2, '0') },
     { id: 'home', label: 'Home', isIcon: true },

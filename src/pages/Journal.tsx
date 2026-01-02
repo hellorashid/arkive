@@ -162,6 +162,7 @@ export default function Journal() {
   const [loadedMonthsCount, setLoadedMonthsCount] = useState(1);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
   const dayScrollContainerRef = useRef<HTMLDivElement>(null);
+  const mobileScrollContainerRef = useRef<HTMLDivElement>(null);
   
   // Track scroll position for scroll-to-top button
   const [showScrollToTop, setShowScrollToTop] = useState(false);
@@ -206,6 +207,12 @@ export default function Journal() {
     const sentinel = loadMoreSentinelRef.current;
     if (!sentinel) return;
 
+    // For mobile, we need to use the mobile scroll container as root
+    // For desktop, we use the day scroll container when the right column is expanded
+    const scrollRoot = isMobile 
+      ? mobileScrollContainerRef.current 
+      : (expandedColumn === 'right' ? dayScrollContainerRef.current : null);
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -213,12 +220,12 @@ export default function Journal() {
           setLoadedMonthsCount(prev => Math.min(prev + 1, 12));
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1, root: scrollRoot }
     );
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [expandedColumn]);
+  }, [expandedColumn, isMobile, mobileTab]);
 
   // Track scroll position for scroll-to-top button and visible month
   useEffect(() => {
@@ -375,7 +382,7 @@ export default function Journal() {
       <JournalProvider value={journalContextValue}>
         <div className="h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot">
           {/* Mobile top bar with avatar */}
-          <div className="fixed top-0 right-0 z-30 p-3">
+          <div className="fixed top-0 right-0 z-30 pt-2 pr-3">
             <UserProfilePopover>
               <button className="w-10 h-10 rounded-full bg-tarot-dark/90 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none overflow-hidden backdrop-blur-sm">
                 {isSignedIn ? (
@@ -392,7 +399,7 @@ export default function Journal() {
           </div>
           
           {/* Content Area - fixed position for reliable sticky behavior */}
-          <div className="fixed top-0 left-0 right-0 bottom-14 overflow-y-auto">
+          <div ref={mobileScrollContainerRef} className="fixed top-0 left-0 right-0 bottom-14 overflow-y-auto">
             {mobileTab === 'home' && (
               <MobileHome
                 dayNotes={dayNotes}
