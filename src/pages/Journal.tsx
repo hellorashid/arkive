@@ -395,31 +395,30 @@ export default function Journal() {
             {mobileTab === 'year' && years.map(year => {
               const content = yearNotes[String(year)];
               const previewText = getTextFromJSON(content);
+              const hasContent = !!previewText;
               return (
                 <div 
                   key={year}
-                  className="border-b border-tarot-gold/20 min-h-[50vh]"
+                  className={`border-b border-tarot-gold/20 ${hasContent ? 'min-h-[50vh]' : ''}`}
                 >
                   <div 
-                    className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
+                    className={`px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm cursor-pointer active:bg-tarot-gold/5 transition-colors ${hasContent ? 'sticky top-0 z-20' : ''}`}
                     onClick={() => openEditor('year', String(year), String(year))}
                   >
                     <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">{year}</h3>
                   </div>
-                  <div 
-                    onClick={() => openEditor('year', String(year), String(year))}
-                    className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
-                  >
-                    <div className="text-white/70 text-sm leading-relaxed">
-                      {previewText ? (
-                        <div className="mobile-content-preview line-clamp-4">
+                  {hasContent && (
+                    <div 
+                      onClick={() => openEditor('year', String(year), String(year))}
+                      className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
+                    >
+                      <div className="text-white/70 text-sm leading-relaxed">
+                        <div className="mobile-content-preview whitespace-pre-wrap">
                           {previewText}
                         </div>
-                      ) : (
-                        <span className="text-tarot-gold/40 italic">Tap to write...</span>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}
@@ -431,31 +430,30 @@ export default function Journal() {
                 const monthName = getMonthName(monthIndex);
                 const content = monthNotes[dateKey];
                 const previewText = getTextFromJSON(content);
+                const hasContent = !!previewText;
                 return (
                   <div 
                     key={dateKey}
-                    className="border-b border-tarot-gold/20 min-h-[50vh]"
+                    className={`border-b border-tarot-gold/20 ${hasContent ? 'min-h-[50vh]' : ''}`}
                   >
                     <div 
-                      className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
+                      className={`px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm cursor-pointer active:bg-tarot-gold/5 transition-colors ${hasContent ? 'sticky top-0 z-20' : ''}`}
                       onClick={() => openEditor('month', dateKey, monthName)}
                     >
                       <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">{monthName}</h3>
                     </div>
-                    <div 
-                      onClick={() => openEditor('month', dateKey, monthName)}
-                      className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
-                    >
-                      <div className="text-white/70 text-sm leading-relaxed">
-                        {previewText ? (
-                          <div className="mobile-content-preview line-clamp-4">
+                    {hasContent && (
+                      <div 
+                        onClick={() => openEditor('month', dateKey, monthName)}
+                        className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
+                      >
+                        <div className="text-white/70 text-sm leading-relaxed">
+                          <div className="mobile-content-preview whitespace-pre-wrap">
                             {previewText}
                           </div>
-                        ) : (
-                          <span className="text-tarot-gold/40 italic">Tap to write...</span>
-                        )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -465,13 +463,14 @@ export default function Journal() {
                 {visibleDays().map((entry) => {
                   const content = dayNotes[entry.dateKey];
                   const previewText = getTextFromJSON(content);
+                  const hasContent = !!previewText;
                   return (
                     <div 
                       key={entry.dateKey}
-                      className="border-b border-tarot-gold/20 min-h-[50vh]"
+                      className={`border-b border-tarot-gold/20 ${hasContent ? 'min-h-[50vh]' : ''}`}
                     >
                       <div 
-                        className="sticky top-0 z-20 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm"
+                        className={`px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark backdrop-blur-sm cursor-pointer active:bg-tarot-gold/5 transition-colors ${hasContent ? 'sticky top-0 z-20' : ''}`}
                         onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
                       >
                         <h3 className="text-tarot-gold-light font-semibold text-lg tracking-wide">
@@ -481,20 +480,18 @@ export default function Journal() {
                           {entry.day}
                         </h3>
                       </div>
-                      <div 
-                        onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
-                        className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
-                      >
-                        <div className="text-white/70 text-sm leading-relaxed">
-                          {previewText ? (
-                            <div className="mobile-content-preview line-clamp-4">
+                      {hasContent && (
+                        <div 
+                          onClick={() => openEditor('day', entry.dateKey, `${entry.isFirstOfMonth ? getMonthName(entry.month) + ' ' : ''}${entry.day}`)}
+                          className="p-4 active:bg-tarot-gold/5 transition-colors cursor-pointer"
+                        >
+                          <div className="text-white/70 text-sm leading-relaxed">
+                            <div className="mobile-content-preview whitespace-pre-wrap">
                               {previewText}
                             </div>
-                          ) : (
-                            <span className="text-tarot-gold/40 italic">Tap to write...</span>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
