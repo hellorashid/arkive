@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { JSONContent } from '@tiptap/react';
 
 interface MobileHomeProps {
@@ -69,26 +69,36 @@ const getContentLength = (content: JSONContent | undefined): number => {
   return content.content.map(extractText).join('').length;
 };
 
-// Sun icon component
-const SunIcon = () => (
+// Arrow icon components
+const ChevronLeft = ({ className }: { className?: string }) => (
   <svg 
-    width="32" 
-    height="32" 
+    width="24" 
+    height="24" 
     viewBox="0 0 24 24" 
     fill="none" 
     stroke="currentColor" 
-    strokeWidth="1.5"
-    className="text-tarot-gold"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
   >
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 2v2" />
-    <path d="M12 20v2" />
-    <path d="m4.93 4.93 1.41 1.41" />
-    <path d="m17.66 17.66 1.41 1.41" />
-    <path d="M2 12h2" />
-    <path d="M20 12h2" />
-    <path d="m6.34 17.66-1.41 1.41" />
-    <path d="m19.07 4.93-1.41 1.41" />
+    <path d="m15 18-6-6 6-6"/>
+  </svg>
+);
+
+const ChevronRight = ({ className }: { className?: string }) => (
+  <svg 
+    width="24" 
+    height="24" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
+    <path d="m9 18 6-6-6-6"/>
   </svg>
 );
 
@@ -100,6 +110,8 @@ export default function MobileHome({
   userName,
 }: MobileHomeProps) {
   const [time, setTime] = useState(new Date());
+  const [viewingMonth, setViewingMonth] = useState(currentMonthIndex);
+  const [viewingYear, setViewingYear] = useState(currentYear);
   
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -118,9 +130,37 @@ export default function MobileHome({
   const dayNumber = time.getDate();
   const year = time.getFullYear();
 
-  // Generate radial sun data for the current month
+  // Check if viewing current month
+  const isCurrentMonth = viewingMonth === currentMonthIndex && viewingYear === currentYear;
+
+  // Navigate months
+  const goToPreviousMonth = () => {
+    if (viewingMonth === 0) {
+      setViewingMonth(11);
+      setViewingYear(viewingYear - 1);
+    } else {
+      setViewingMonth(viewingMonth - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (isCurrentMonth) return; // Can't go to future
+    if (viewingMonth === 11) {
+      setViewingMonth(0);
+      setViewingYear(viewingYear + 1);
+    } else {
+      setViewingMonth(viewingMonth + 1);
+    }
+  };
+
+  // Get month abbreviation for the viewing month
+  const viewingMonthAbbr = new Date(viewingYear, viewingMonth, 1)
+    .toLocaleDateString('en-US', { month: 'short' })
+    .toUpperCase();
+
+  // Generate radial sun data for the viewing month
   const sunRays = useMemo(() => {
-    const daysInMonth = getDaysInMonth(currentYear, currentMonthIndex);
+    const daysInMonth = getDaysInMonth(viewingYear, viewingMonth);
     const rays: Array<{
       day: number;
       dateKey: string;
@@ -131,11 +171,11 @@ export default function MobileHome({
     }> = [];
     
     for (let day = 1; day <= daysInMonth; day++) {
-      const dateKey = formatDayDateKey(currentYear, currentMonthIndex, day);
+      const dateKey = formatDayDateKey(viewingYear, viewingMonth, day);
       const content = dayNotes[dateKey];
       const hasEntry = !!content;
-      const isToday = day === currentDay;
-      const isFuture = day > currentDay;
+      const isToday = isCurrentMonth && day === currentDay;
+      const isFuture = isCurrentMonth && day > currentDay;
       const contentLength = getContentLength(content);
       
       rays.push({
@@ -149,64 +189,31 @@ export default function MobileHome({
     }
     
     return rays;
-  }, [currentYear, currentMonthIndex, currentDay, dayNotes]);
+  }, [viewingYear, viewingMonth, currentDay, dayNotes, isCurrentMonth]);
 
   // Calculate max content length for normalization
   const maxContentLength = useMemo(() => {
     return Math.max(...sunRays.map(r => r.contentLength), 100);
   }, [sunRays]);
 
-  // Calculate monthly stats
-  const monthlyStats = useMemo(() => {
-    let entriesCount = 0;
-    for (let day = 1; day <= currentDay; day++) {
-      const dateKey = formatDayDateKey(currentYear, currentMonthIndex, day);
-      if (dayNotes[dateKey]) {
-        entriesCount++;
-      }
-    }
-    return {
-      entriesCount,
-      passedDays: currentDay,
-      percentage: currentDay > 0 ? Math.round((entriesCount / currentDay) * 100) : 0,
-    };
-  }, [currentYear, currentMonthIndex, currentDay, dayNotes]);
-
-  // Calculate current streak and longest streak
-  const streakStats = useMemo(() => {
+  // Calculate current streak
+  const currentStreak = useMemo(() => {
     const today = new Date(currentYear, currentMonthIndex, currentDay);
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
+    let streak = 0;
     
-    // Calculate current streak (going backwards from today)
     for (let i = 0; i <= 365; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() - i);
       const dateKey = formatDayDateKey(date.getFullYear(), date.getMonth(), date.getDate());
       
       if (dayNotes[dateKey]) {
-        currentStreak++;
+        streak++;
       } else if (i > 0) {
         break;
       }
     }
     
-    // Calculate longest streak (scan all entries in the last year)
-    for (let i = 365; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const dateKey = formatDayDateKey(date.getFullYear(), date.getMonth(), date.getDate());
-      
-      if (dayNotes[dateKey]) {
-        tempStreak++;
-        longestStreak = Math.max(longestStreak, tempStreak);
-      } else {
-        tempStreak = 0;
-      }
-    }
-    
-    return { currentStreak, longestStreak };
+    return streak;
   }, [currentYear, currentMonthIndex, currentDay, dayNotes]);
 
   const quote = getMotivationalQuote();
@@ -215,7 +222,7 @@ export default function MobileHome({
   // Calculate ray properties
   const getRayStyle = (ray: typeof sunRays[0], index: number, total: number) => {
     const angle = (index / total) * 360 - 90; // Start from top (-90 degrees)
-    const baseLength = 35; // Base length in pixels
+    const baseLength = 35;
     const minLength = 20;
     const maxLength = 55;
     
@@ -225,27 +232,23 @@ export default function MobileHome({
     let glowIntensity: number = 0;
     
     if (ray.isFuture) {
-      // Upcoming: shorter, very faint
       length = minLength;
       opacity = 0.15;
-      color = 'rgb(185, 144, 107)'; // tarot-gold
+      color = 'rgb(185, 144, 107)';
       glowIntensity = 0;
     } else if (!ray.hasEntry) {
-      // No entry: medium, light
       length = baseLength;
       opacity = 0.3;
       color = 'rgb(185, 144, 107)';
       glowIntensity = 0;
     } else {
-      // Has entry: length based on content, bright with glow
       const normalizedLength = Math.min(ray.contentLength / maxContentLength, 1);
       length = baseLength + (maxLength - baseLength) * normalizedLength;
       opacity = 0.8 + (normalizedLength * 0.2);
-      color = 'rgb(212, 176, 140)'; // tarot-gold-light
+      color = 'rgb(212, 176, 140)';
       glowIntensity = 0.3 + (normalizedLength * 0.7);
     }
     
-    // Today gets special treatment
     if (ray.isToday) {
       length = Math.max(length, maxLength);
       glowIntensity = 1;
@@ -294,14 +297,35 @@ export default function MobileHome({
         </p>
       </motion.div>
 
-      {/* Radial Sun Tracker */}
+      {/* Radial Sun Tracker with Navigation */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.2 }}
         className="relative mb-6"
       >
-        {/* Background circle */}
+        {/* Navigation Arrows */}
+        <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none z-10">
+          <button
+            onClick={goToPreviousMonth}
+            className="pointer-events-auto w-10 h-10 rounded-full bg-tarot-dark/80 border border-tarot-gold/30 flex items-center justify-center hover:bg-tarot-gold/20 transition-colors"
+          >
+            <ChevronLeft className="text-tarot-gold" />
+          </button>
+          <button
+            onClick={goToNextMonth}
+            disabled={isCurrentMonth}
+            className={`pointer-events-auto w-10 h-10 rounded-full bg-tarot-dark/80 border border-tarot-gold/30 flex items-center justify-center transition-colors ${
+              isCurrentMonth 
+                ? 'opacity-30 cursor-not-allowed' 
+                : 'hover:bg-tarot-gold/20'
+            }`}
+          >
+            <ChevronRight className="text-tarot-gold" />
+          </button>
+        </div>
+
+        {/* Sun Tracker */}
         <div className="relative mx-auto" style={{ width: '280px', height: '280px' }}>
           {/* Outer glow ring */}
           <div 
@@ -312,73 +336,80 @@ export default function MobileHome({
           />
           
           {/* Rays container */}
-          <svg 
-            viewBox="0 0 280 280" 
-            className="absolute inset-0 w-full h-full"
-            style={{ overflow: 'visible' }}
-          >
-            {sunRays.map((ray, index) => {
-              const style = getRayStyle(ray, index, sunRays.length);
-              const centerX = 140;
-              const centerY = 140;
-              const innerRadius = 50;
-              const angleRad = (style.angle * Math.PI) / 180;
-              
-              const x1 = centerX + Math.cos(angleRad) * innerRadius;
-              const y1 = centerY + Math.sin(angleRad) * innerRadius;
-              const x2 = centerX + Math.cos(angleRad) * (innerRadius + style.length);
-              const y2 = centerY + Math.sin(angleRad) * (innerRadius + style.length);
-              
-              return (
-                <g key={ray.day}>
-                  {/* Glow effect for entries */}
-                  {style.glowIntensity > 0 && (
-                    <line
+          <AnimatePresence mode="wait">
+            <motion.svg 
+              key={`${viewingYear}-${viewingMonth}`}
+              initial={{ opacity: 0, rotate: -10 }}
+              animate={{ opacity: 1, rotate: 0 }}
+              exit={{ opacity: 0, rotate: 10 }}
+              transition={{ duration: 0.3 }}
+              viewBox="0 0 280 280" 
+              className="absolute inset-0 w-full h-full"
+              style={{ overflow: 'visible' }}
+            >
+              {sunRays.map((ray, index) => {
+                const style = getRayStyle(ray, index, sunRays.length);
+                const centerX = 140;
+                const centerY = 140;
+                const innerRadius = 50;
+                const angleRad = (style.angle * Math.PI) / 180;
+                
+                const x1 = centerX + Math.cos(angleRad) * innerRadius;
+                const y1 = centerY + Math.sin(angleRad) * innerRadius;
+                const x2 = centerX + Math.cos(angleRad) * (innerRadius + style.length);
+                const y2 = centerY + Math.sin(angleRad) * (innerRadius + style.length);
+                
+                return (
+                  <g key={ray.day}>
+                    {/* Glow effect for entries */}
+                    {style.glowIntensity > 0 && (
+                      <line
+                        x1={x1}
+                        y1={y1}
+                        x2={x2}
+                        y2={y2}
+                        stroke={style.color}
+                        strokeWidth={ray.isToday ? 6 : 4}
+                        strokeLinecap="round"
+                        opacity={style.glowIntensity * 0.4}
+                        filter="blur(3px)"
+                      />
+                    )}
+                    {/* Main ray */}
+                    <motion.line
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: style.opacity }}
+                      transition={{ 
+                        duration: 0.5, 
+                        delay: 0.1 + (index * 0.015),
+                        ease: "easeOut"
+                      }}
                       x1={x1}
                       y1={y1}
                       x2={x2}
                       y2={y2}
                       stroke={style.color}
-                      strokeWidth={ray.isToday ? 6 : 4}
+                      strokeWidth={ray.isToday ? 3 : 1.5}
                       strokeLinecap="round"
-                      opacity={style.glowIntensity * 0.4}
-                      filter="blur(3px)"
                     />
-                  )}
-                  {/* Main ray */}
-                  <motion.line
-                    initial={{ pathLength: 0, opacity: 0 }}
-                    animate={{ pathLength: 1, opacity: style.opacity }}
-                    transition={{ 
-                      duration: 0.5, 
-                      delay: 0.3 + (index * 0.02),
-                      ease: "easeOut"
-                    }}
-                    x1={x1}
-                    y1={y1}
-                    x2={x2}
-                    y2={y2}
-                    stroke={style.color}
-                    strokeWidth={ray.isToday ? 3 : 1.5}
-                    strokeLinecap="round"
-                  />
-                  {/* Today indicator dot */}
-                  {ray.isToday && (
-                    <motion.circle
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ duration: 0.3, delay: 0.8 }}
-                      cx={x2}
-                      cy={y2}
-                      r={4}
-                      fill="rgb(212, 176, 140)"
-                      filter="drop-shadow(0 0 4px rgb(212, 176, 140))"
-                    />
-                  )}
-                </g>
-              );
-            })}
-          </svg>
+                    {/* Today indicator dot */}
+                    {ray.isToday && (
+                      <motion.circle
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.3, delay: 0.6 }}
+                        cx={x2}
+                        cy={y2}
+                        r={4}
+                        fill="rgb(212, 176, 140)"
+                        filter="drop-shadow(0 0 4px rgb(212, 176, 140))"
+                      />
+                    )}
+                  </g>
+                );
+              })}
+            </motion.svg>
+          </AnimatePresence>
           
           {/* Center circle */}
           <motion.div 
@@ -390,76 +421,30 @@ export default function MobileHome({
               boxShadow: '0 0 20px rgba(185, 144, 107, 0.2), inset 0 0 20px rgba(0, 0, 0, 0.5)',
             }}
           >
-            <SunIcon />
-            <span className="text-tarot-gold text-xs font-semibold tracking-widest mt-1">TODAY</span>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${viewingYear}-${viewingMonth}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col items-center"
+              >
+                <span className="text-tarot-gold-light text-lg font-semibold tracking-wider">
+                  {viewingMonthAbbr}
+                </span>
+                {isCurrentMonth && currentStreak > 0 && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-sm">🔥</span>
+                    <span className="text-tarot-gold text-sm font-semibold">{currentStreak}</span>
+                  </div>
+                )}
+                {!isCurrentMonth && (
+                  <span className="text-tarot-gold/50 text-xs mt-1">{viewingYear}</span>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </motion.div>
-        </div>
-        
-        {/* Month label */}
-        <div className="text-center mt-2">
-          <span className="text-tarot-gold/60 text-sm tracking-wide">
-            {monthName} {year} • {monthlyStats.percentage}%
-          </span>
-        </div>
-      </motion.div>
-
-      {/* Streak Stats - Combined */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
-        className="bg-tarot-dark/50 border border-tarot-gold/20 rounded-xl p-4 mb-4"
-      >
-        <div className="flex items-center justify-around">
-          {/* Current Streak */}
-          <div className="text-center flex-1">
-            <div className="text-2xl mb-1">🔥</div>
-            <div className="text-tarot-gold-light text-2xl font-semibold">{streakStats.currentStreak}</div>
-            <div className="text-tarot-gold/60 text-xs tracking-wide uppercase">Current</div>
-          </div>
-          
-          {/* Divider */}
-          <div className="h-12 w-px bg-tarot-gold/20"></div>
-          
-          {/* Longest Streak */}
-          <div className="text-center flex-1">
-            <div className="text-2xl mb-1">👑</div>
-            <div className="text-tarot-gold-light text-2xl font-semibold">{streakStats.longestStreak}</div>
-            <div className="text-tarot-gold/60 text-xs tracking-wide uppercase">Longest</div>
-          </div>
-          
-          {/* Divider */}
-          <div className="h-12 w-px bg-tarot-gold/20"></div>
-          
-          {/* Monthly Entries */}
-          <div className="text-center flex-1">
-            <div className="text-2xl mb-1">📝</div>
-            <div className="text-tarot-gold-light text-2xl font-semibold">
-              {monthlyStats.entriesCount}<span className="text-tarot-gold/40 text-lg">/{monthlyStats.passedDays}</span>
-            </div>
-            <div className="text-tarot-gold/60 text-xs tracking-wide uppercase">This Month</div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Legend */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.6 }}
-        className="flex items-center justify-center gap-6 mb-4 text-xs"
-      >
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-tarot-gold/15 rounded"></div>
-          <span className="text-tarot-gold/40">Upcoming</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-tarot-gold/30 rounded"></div>
-          <span className="text-tarot-gold/40">No entry</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-0.5 bg-tarot-gold-light rounded" style={{ boxShadow: '0 0 4px rgba(212, 176, 140, 0.5)' }}></div>
-          <span className="text-tarot-gold/40">Entry</span>
         </div>
       </motion.div>
 
@@ -467,7 +452,7 @@ export default function MobileHome({
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.7 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
         className="bg-tarot-dark/30 border border-tarot-gold/10 rounded-xl p-4 text-center"
       >
         <div className="text-tarot-gold/20 text-2xl mb-2">✦</div>
@@ -481,20 +466,18 @@ export default function MobileHome({
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.8 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
         className="mt-4 bg-gradient-to-r from-tarot-gold/5 to-transparent border-l-2 border-tarot-gold/30 rounded-r-xl p-4"
       >
         <h3 className="text-tarot-gold-light text-sm font-semibold mb-1">Quick Insight</h3>
         <p className="text-white/60 text-sm leading-relaxed">
-          {streakStats.currentStreak >= streakStats.longestStreak && streakStats.currentStreak >= 7
-            ? `You're on fire! Your current ${streakStats.currentStreak}-day streak is your best ever! 🏆`
-            : streakStats.currentStreak >= 7 
-              ? `Amazing! You've been journaling for ${streakStats.currentStreak} days straight. Keep the momentum going! 🌟`
-              : streakStats.currentStreak >= 3
-                ? `Great job! You're building a ${streakStats.currentStreak}-day streak. Your record is ${streakStats.longestStreak} days! 💪`
-                : monthlyStats.entriesCount > 0
-                  ? `You've written ${monthlyStats.entriesCount} ${monthlyStats.entriesCount === 1 ? 'entry' : 'entries'} this month. Every entry counts! ✨`
-                  : `Start your journaling journey today. Even a few words can make a difference. 🌱`
+          {currentStreak >= 7 
+            ? `Amazing! You've been journaling for ${currentStreak} days straight. Keep the momentum going! 🌟`
+            : currentStreak >= 3
+              ? `Great job! You're building a ${currentStreak}-day streak. Consistency is key! 💪`
+              : currentStreak > 0
+                ? `You're on a ${currentStreak}-day streak. Every entry counts! ✨`
+                : `Start your journaling journey today. Even a few words can make a difference. 🌱`
           }
         </p>
       </motion.div>
