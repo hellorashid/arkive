@@ -15,6 +15,11 @@ const formatDayDateKey = (year: number, month: number, day: number) => {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 };
 
+// Helper to get days in a month
+const getDaysInMonth = (year: number, month: number) => {
+  return new Date(year, month + 1, 0).getDate();
+};
+
 // Get greeting based on time of day
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -47,6 +52,46 @@ const getMotivationalQuote = () => {
   return quotes[dayOfYear % quotes.length];
 };
 
+// Helper to extract text length from TipTap JSON content
+const getContentLength = (content: JSONContent | undefined): number => {
+  if (!content || !content.content) return 0;
+  
+  const extractText = (node: JSONContent): string => {
+    if (node.type === 'text' && node.text) {
+      return node.text;
+    }
+    if (node.content) {
+      return node.content.map(extractText).join('');
+    }
+    return '';
+  };
+  
+  return content.content.map(extractText).join('').length;
+};
+
+// Sun icon component
+const SunIcon = () => (
+  <svg 
+    width="32" 
+    height="32" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="1.5"
+    className="text-tarot-gold"
+  >
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2" />
+    <path d="M12 20v2" />
+    <path d="m4.93 4.93 1.41 1.41" />
+    <path d="m17.66 17.66 1.41 1.41" />
+    <path d="M2 12h2" />
+    <path d="M20 12h2" />
+    <path d="m6.34 17.66-1.41 1.41" />
+    <path d="m19.07 4.93-1.41 1.41" />
+  </svg>
+);
+
 export default function MobileHome({
   dayNotes,
   currentYear,
@@ -73,61 +118,59 @@ export default function MobileHome({
   const dayNumber = time.getDate();
   const year = time.getFullYear();
 
-  // Generate GitHub-style contribution graph data (last 12 weeks)
-  const contributionGraph = useMemo(() => {
-    const today = new Date(currentYear, currentMonthIndex, currentDay);
-    const weeks: Array<Array<{ date: Date; dateKey: string; hasEntry: boolean; isToday: boolean; isFuture: boolean }>> = [];
+  // Generate radial sun data for the current month
+  const sunRays = useMemo(() => {
+    const daysInMonth = getDaysInMonth(currentYear, currentMonthIndex);
+    const rays: Array<{
+      day: number;
+      dateKey: string;
+      hasEntry: boolean;
+      isToday: boolean;
+      isFuture: boolean;
+      contentLength: number;
+    }> = [];
     
-    // Get the most recent Sunday (or today if Sunday)
-    const currentDayOfWeek = today.getDay();
-    const mostRecentSunday = new Date(today);
-    mostRecentSunday.setDate(today.getDate() - currentDayOfWeek);
-    
-    // Generate 12 weeks of data (columns), with days of week as rows
-    const numWeeks = 12;
-    
-    for (let weekOffset = numWeeks - 1; weekOffset >= 0; weekOffset--) {
-      const week: Array<{ date: Date; dateKey: string; hasEntry: boolean; isToday: boolean; isFuture: boolean }> = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = formatDayDateKey(currentYear, currentMonthIndex, day);
+      const content = dayNotes[dateKey];
+      const hasEntry = !!content;
+      const isToday = day === currentDay;
+      const isFuture = day > currentDay;
+      const contentLength = getContentLength(content);
       
-      for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-        const date = new Date(mostRecentSunday);
-        date.setDate(mostRecentSunday.getDate() - (weekOffset * 7) + dayOfWeek);
-        
-        const dateKey = formatDayDateKey(date.getFullYear(), date.getMonth(), date.getDate());
-        const isToday = date.toDateString() === today.toDateString();
-        const isFuture = date > today;
-        
-        week.push({
-          date,
-          dateKey,
-          hasEntry: !!dayNotes[dateKey],
-          isToday,
-          isFuture,
-        });
-      }
-      
-      weeks.push(week);
+      rays.push({
+        day,
+        dateKey,
+        hasEntry,
+        isToday,
+        isFuture,
+        contentLength,
+      });
     }
     
-    return weeks;
+    return rays;
   }, [currentYear, currentMonthIndex, currentDay, dayNotes]);
 
-  // Calculate total entries in the graph period
-  const graphStats = useMemo(() => {
-    let totalEntries = 0;
-    let totalDays = 0;
-    
-    contributionGraph.forEach(week => {
-      week.forEach(day => {
-        if (!day.isFuture) {
-          totalDays++;
-          if (day.hasEntry) totalEntries++;
-        }
-      });
-    });
-    
-    return { totalEntries, totalDays, percentage: totalDays > 0 ? Math.round((totalEntries / totalDays) * 100) : 0 };
-  }, [contributionGraph]);
+  // Calculate max content length for normalization
+  const maxContentLength = useMemo(() => {
+    return Math.max(...sunRays.map(r => r.contentLength), 100);
+  }, [sunRays]);
+
+  // Calculate monthly stats
+  const monthlyStats = useMemo(() => {
+    let entriesCount = 0;
+    for (let day = 1; day <= currentDay; day++) {
+      const dateKey = formatDayDateKey(currentYear, currentMonthIndex, day);
+      if (dayNotes[dateKey]) {
+        entriesCount++;
+      }
+    }
+    return {
+      entriesCount,
+      passedDays: currentDay,
+      percentage: currentDay > 0 ? Math.round((entriesCount / currentDay) * 100) : 0,
+    };
+  }, [currentYear, currentMonthIndex, currentDay, dayNotes]);
 
   // Calculate current streak and longest streak
   const streakStats = useMemo(() => {
@@ -145,7 +188,6 @@ export default function MobileHome({
       if (dayNotes[dateKey]) {
         currentStreak++;
       } else if (i > 0) {
-        // Don't break on today if no entry yet
         break;
       }
     }
@@ -167,30 +209,58 @@ export default function MobileHome({
     return { currentStreak, longestStreak };
   }, [currentYear, currentMonthIndex, currentDay, dayNotes]);
 
-  // Get month labels for the graph
-  const monthLabels = useMemo(() => {
-    const labels: Array<{ label: string; position: number }> = [];
-    let lastMonth = -1;
-    
-    contributionGraph.forEach((week, weekIndex) => {
-      const firstDayOfWeek = week[0];
-      const month = firstDayOfWeek.date.getMonth();
-      
-      if (month !== lastMonth) {
-        labels.push({
-          label: firstDayOfWeek.date.toLocaleDateString('en-US', { month: 'short' }),
-          position: weekIndex,
-        });
-        lastMonth = month;
-      }
-    });
-    
-    return labels;
-  }, [contributionGraph]);
-
   const quote = getMotivationalQuote();
   const displayName = userName || 'Friend';
-  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+  // Calculate ray properties
+  const getRayStyle = (ray: typeof sunRays[0], index: number, total: number) => {
+    const angle = (index / total) * 360 - 90; // Start from top (-90 degrees)
+    const baseLength = 35; // Base length in pixels
+    const minLength = 20;
+    const maxLength = 55;
+    
+    let length: number;
+    let opacity: number;
+    let color: string;
+    let glowIntensity: number = 0;
+    
+    if (ray.isFuture) {
+      // Upcoming: shorter, very faint
+      length = minLength;
+      opacity = 0.15;
+      color = 'rgb(185, 144, 107)'; // tarot-gold
+      glowIntensity = 0;
+    } else if (!ray.hasEntry) {
+      // No entry: medium, light
+      length = baseLength;
+      opacity = 0.3;
+      color = 'rgb(185, 144, 107)';
+      glowIntensity = 0;
+    } else {
+      // Has entry: length based on content, bright with glow
+      const normalizedLength = Math.min(ray.contentLength / maxContentLength, 1);
+      length = baseLength + (maxLength - baseLength) * normalizedLength;
+      opacity = 0.8 + (normalizedLength * 0.2);
+      color = 'rgb(212, 176, 140)'; // tarot-gold-light
+      glowIntensity = 0.3 + (normalizedLength * 0.7);
+    }
+    
+    // Today gets special treatment
+    if (ray.isToday) {
+      length = Math.max(length, maxLength);
+      glowIntensity = 1;
+      color = 'rgb(212, 176, 140)';
+      opacity = 1;
+    }
+    
+    return {
+      angle,
+      length,
+      opacity,
+      color,
+      glowIntensity,
+    };
+  };
 
   return (
     <div className="min-h-full p-4 pb-20">
@@ -214,7 +284,7 @@ export default function MobileHome({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.1 }}
-        className="text-center mb-8"
+        className="text-center mb-6"
       >
         <h1 className="text-tarot-gold-light text-xl font-tarot mb-1">
           {getGreeting()}, <span className="font-semibold">{displayName}</span>
@@ -224,11 +294,120 @@ export default function MobileHome({
         </p>
       </motion.div>
 
+      {/* Radial Sun Tracker */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="relative mb-6"
+      >
+        {/* Background circle */}
+        <div className="relative mx-auto" style={{ width: '280px', height: '280px' }}>
+          {/* Outer glow ring */}
+          <div 
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, transparent 40%, rgba(185, 144, 107, 0.05) 60%, transparent 70%)',
+            }}
+          />
+          
+          {/* Rays container */}
+          <svg 
+            viewBox="0 0 280 280" 
+            className="absolute inset-0 w-full h-full"
+            style={{ overflow: 'visible' }}
+          >
+            {sunRays.map((ray, index) => {
+              const style = getRayStyle(ray, index, sunRays.length);
+              const centerX = 140;
+              const centerY = 140;
+              const innerRadius = 50;
+              const angleRad = (style.angle * Math.PI) / 180;
+              
+              const x1 = centerX + Math.cos(angleRad) * innerRadius;
+              const y1 = centerY + Math.sin(angleRad) * innerRadius;
+              const x2 = centerX + Math.cos(angleRad) * (innerRadius + style.length);
+              const y2 = centerY + Math.sin(angleRad) * (innerRadius + style.length);
+              
+              return (
+                <g key={ray.day}>
+                  {/* Glow effect for entries */}
+                  {style.glowIntensity > 0 && (
+                    <line
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke={style.color}
+                      strokeWidth={ray.isToday ? 6 : 4}
+                      strokeLinecap="round"
+                      opacity={style.glowIntensity * 0.4}
+                      filter="blur(3px)"
+                    />
+                  )}
+                  {/* Main ray */}
+                  <motion.line
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: style.opacity }}
+                    transition={{ 
+                      duration: 0.5, 
+                      delay: 0.3 + (index * 0.02),
+                      ease: "easeOut"
+                    }}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={style.color}
+                    strokeWidth={ray.isToday ? 3 : 1.5}
+                    strokeLinecap="round"
+                  />
+                  {/* Today indicator dot */}
+                  {ray.isToday && (
+                    <motion.circle
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 0.8 }}
+                      cx={x2}
+                      cy={y2}
+                      r={4}
+                      fill="rgb(212, 176, 140)"
+                      filter="drop-shadow(0 0 4px rgb(212, 176, 140))"
+                    />
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+          
+          {/* Center circle */}
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.4, type: "spring" }}
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-tarot-darker border-2 border-tarot-gold/50 flex flex-col items-center justify-center"
+            style={{
+              boxShadow: '0 0 20px rgba(185, 144, 107, 0.2), inset 0 0 20px rgba(0, 0, 0, 0.5)',
+            }}
+          >
+            <SunIcon />
+            <span className="text-tarot-gold text-xs font-semibold tracking-widest mt-1">TODAY</span>
+          </motion.div>
+        </div>
+        
+        {/* Month label */}
+        <div className="text-center mt-2">
+          <span className="text-tarot-gold/60 text-sm tracking-wide">
+            {monthName} {year} • {monthlyStats.percentage}%
+          </span>
+        </div>
+      </motion.div>
+
       {/* Streak Stats - Combined */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
         className="bg-tarot-dark/50 border border-tarot-gold/20 rounded-xl p-4 mb-4"
       >
         <div className="flex items-center justify-around">
@@ -252,104 +431,35 @@ export default function MobileHome({
           {/* Divider */}
           <div className="h-12 w-px bg-tarot-gold/20"></div>
           
-          {/* Total Entries */}
+          {/* Monthly Entries */}
           <div className="text-center flex-1">
             <div className="text-2xl mb-1">📝</div>
-            <div className="text-tarot-gold-light text-2xl font-semibold">{graphStats.totalEntries}</div>
-            <div className="text-tarot-gold/60 text-xs tracking-wide uppercase">Entries</div>
+            <div className="text-tarot-gold-light text-2xl font-semibold">
+              {monthlyStats.entriesCount}<span className="text-tarot-gold/40 text-lg">/{monthlyStats.passedDays}</span>
+            </div>
+            <div className="text-tarot-gold/60 text-xs tracking-wide uppercase">This Month</div>
           </div>
         </div>
       </motion.div>
 
-      {/* GitHub-style Contribution Graph */}
+      {/* Legend */}
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="bg-tarot-dark/50 border border-tarot-gold/20 rounded-xl p-4 mb-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+        className="flex items-center justify-center gap-6 mb-4 text-xs"
       >
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-tarot-gold-light text-sm font-semibold tracking-wide uppercase">
-            Activity
-          </h2>
-          <span className="text-tarot-gold/60 text-xs">
-            {graphStats.percentage}% in last 12 weeks
-          </span>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-0.5 bg-tarot-gold/15 rounded"></div>
+          <span className="text-tarot-gold/40">Upcoming</span>
         </div>
-        
-        {/* Month labels */}
-        <div className="flex mb-1 ml-5">
-          {monthLabels.map((label, index) => (
-            <div
-              key={index}
-              className="text-tarot-gold/40 text-xs"
-              style={{
-                position: 'relative',
-                left: `${label.position * (100 / 12)}%`,
-                marginRight: index < monthLabels.length - 1 ? 'auto' : 0,
-              }}
-            >
-              {label.label}
-            </div>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-0.5 bg-tarot-gold/30 rounded"></div>
+          <span className="text-tarot-gold/40">No entry</span>
         </div>
-        
-        {/* Graph grid */}
-        <div className="flex gap-0.5">
-          {/* Day labels */}
-          <div className="flex flex-col gap-0.5 mr-1">
-            {dayLabels.map((label, index) => (
-              <div 
-                key={index} 
-                className="h-3 w-3 flex items-center justify-center text-tarot-gold/40"
-                style={{ fontSize: '8px' }}
-              >
-                {index % 2 === 1 ? label : ''}
-              </div>
-            ))}
-          </div>
-          
-          {/* Weeks grid */}
-          <div className="flex gap-0.5 flex-1">
-            {contributionGraph.map((week, weekIndex) => (
-              <div key={weekIndex} className="flex flex-col gap-0.5 flex-1">
-                {week.map((day, dayIndex) => (
-                  <motion.div
-                    key={dayIndex}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ 
-                      duration: 0.2, 
-                      delay: 0.3 + (weekIndex * 0.02) + (dayIndex * 0.01) 
-                    }}
-                    className={`aspect-square rounded-sm transition-all duration-200 ${
-                      day.isFuture
-                        ? 'bg-tarot-dark/30'
-                        : day.isToday
-                          ? 'bg-tarot-gold ring-1 ring-tarot-gold-light ring-offset-1 ring-offset-tarot-dark'
-                          : day.hasEntry
-                            ? 'bg-tarot-gold/60 hover:bg-tarot-gold/80'
-                            : 'bg-tarot-gold/10 hover:bg-tarot-gold/20'
-                    }`}
-                    title={`${day.date.toLocaleDateString()}: ${day.hasEntry ? 'Entry written' : 'No entry'}`}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Legend */}
-        <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-tarot-gold/10">
-          <span className="text-tarot-gold/40 text-xs">Less</span>
-          <div className="flex gap-0.5">
-            <div className="w-3 h-3 rounded-sm bg-tarot-gold/10"></div>
-            <div className="w-3 h-3 rounded-sm bg-tarot-gold/30"></div>
-            <div className="w-3 h-3 rounded-sm bg-tarot-gold/50"></div>
-            <div className="w-3 h-3 rounded-sm bg-tarot-gold/70"></div>
-            <div className="w-3 h-3 rounded-sm bg-tarot-gold"></div>
-          </div>
-          <span className="text-tarot-gold/40 text-xs">More</span>
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-0.5 bg-tarot-gold-light rounded" style={{ boxShadow: '0 0 4px rgba(212, 176, 140, 0.5)' }}></div>
+          <span className="text-tarot-gold/40">Entry</span>
         </div>
       </motion.div>
 
@@ -357,7 +467,7 @@ export default function MobileHome({
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
         className="bg-tarot-dark/30 border border-tarot-gold/10 rounded-xl p-4 text-center"
       >
         <div className="text-tarot-gold/20 text-2xl mb-2">✦</div>
@@ -371,7 +481,7 @@ export default function MobileHome({
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
         className="mt-4 bg-gradient-to-r from-tarot-gold/5 to-transparent border-l-2 border-tarot-gold/30 rounded-r-xl p-4"
       >
         <h3 className="text-tarot-gold-light text-sm font-semibold mb-1">Quick Insight</h3>
@@ -382,8 +492,8 @@ export default function MobileHome({
               ? `Amazing! You've been journaling for ${streakStats.currentStreak} days straight. Keep the momentum going! 🌟`
               : streakStats.currentStreak >= 3
                 ? `Great job! You're building a ${streakStats.currentStreak}-day streak. Your record is ${streakStats.longestStreak} days! 💪`
-                : graphStats.totalEntries > 0
-                  ? `You've written ${graphStats.totalEntries} ${graphStats.totalEntries === 1 ? 'entry' : 'entries'} recently. Every entry counts! ✨`
+                : monthlyStats.entriesCount > 0
+                  ? `You've written ${monthlyStats.entriesCount} ${monthlyStats.entriesCount === 1 ? 'entry' : 'entries'} this month. Every entry counts! ✨`
                   : `Start your journaling journey today. Even a few words can make a difference. 🌱`
           }
         </p>
