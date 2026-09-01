@@ -76,7 +76,7 @@ export default function Journal() {
   const isMobile = useIsMobile();
   const { db, isSignedIn, user } = useBasic();
   
-  const [expandedColumn, setExpandedColumn] = useState<'left' | 'middle' | 'right'>('right');
+  const [expandedColumn, setExpandedColumn] = useState<'left' | 'middle' | 'right' | 'home'>('home');
   const [currentYear] = useState(new Date().getFullYear());
   const [currentMonth] = useState(new Date().toLocaleString('default', { month: 'short' }));
   const [currentMonthIndex] = useState(new Date().getMonth());
@@ -262,7 +262,7 @@ export default function Journal() {
     dayScrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const getColumnFlex = (column: 'left' | 'middle' | 'right') => {
+  const getColumnFlex = (column: 'left' | 'middle' | 'right' | 'home') => {
     return column === expandedColumn ? 10 : 1;
   };
 
@@ -767,25 +767,62 @@ export default function Journal() {
           </motion.div>
         </div>
 
-        {/* Sidebar with Clock */}
-        <div className="w-20 bg-tarot-dark border-l border-tarot-gold/30 flex flex-col items-center justify-between pt-4 pb-4">
-          <TarotClock />
-          <div className="flex flex-col items-center gap-3">
-            <UserProfilePopover>
-              <button className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden">
-                {isSignedIn ? (
-                  <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
-                ) : (
-                  <img 
-                    src={placeholderAvatar} 
-                    alt="Anonymous avatar" 
-                    className="w-full h-full object-cover"
-                  />
-                )}
-              </button>
-            </UserProfilePopover>
+        {/* Home Panel - Fourth sliding column */}
+        <motion.div 
+          onClick={() => setExpandedColumn('home')}
+          className="bg-tarot-dark border-l border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot"
+          animate={{ flex: getColumnFlex('home') }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+        >
+          <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
+            {expandedColumn === 'home' ? (
+              <div className="h-full overflow-y-auto scrollbar-hide">
+                <MobileHome
+                  dayNotes={dayNotes}
+                  currentYear={currentYear}
+                  currentMonthIndex={currentMonthIndex}
+                  currentDay={currentDay}
+                  userName={isSignedIn ? userName : undefined}
+                />
+                {/* Profile avatar at bottom of expanded home panel */}
+                <div className="sticky bottom-0 w-full flex justify-center pb-4 bg-gradient-to-t from-tarot-dark via-tarot-dark to-transparent pt-4">
+                  <UserProfilePopover>
+                    <button className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden">
+                      {isSignedIn ? (
+                        <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
+                      ) : (
+                        <img 
+                          src={placeholderAvatar} 
+                          alt="Anonymous avatar" 
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </button>
+                  </UserProfilePopover>
+                </div>
+              </div>
+            ) : (
+              <div className="w-20 h-full flex flex-col items-center justify-between pt-4 pb-4">
+                <TarotClock />
+                <div className="flex flex-col items-center gap-3">
+                  <UserProfilePopover>
+                    <button className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden">
+                      {isSignedIn ? (
+                        <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
+                      ) : (
+                        <img 
+                          src={placeholderAvatar} 
+                          alt="Anonymous avatar" 
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </button>
+                  </UserProfilePopover>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
     </JournalProvider>
