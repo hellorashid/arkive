@@ -263,7 +263,7 @@ export default function Journal() {
   };
 
   const getColumnFlex = (column: 'left' | 'middle' | 'right' | 'home') => {
-    return column === expandedColumn ? 10 : 1;
+    return column === expandedColumn ? 20 : 1;
   };
 
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
@@ -771,7 +771,11 @@ export default function Journal() {
         <motion.div 
           onClick={() => setExpandedColumn('home')}
           className="bg-tarot-dark border-l border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot"
-          animate={{ flex: getColumnFlex('home') }}
+          animate={
+            expandedColumn === 'home'
+              ? { flex: 20, width: 'auto' }
+              : { flex: '0 0 80px', width: '80px' }
+          }
           transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
