@@ -808,7 +808,7 @@ export default function Journal() {
         >
           <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark relative">
             {expandedColumn === 'home' ? (
-              <div className="h-full overflow-y-auto scrollbar-hide pb-20">
+              <div className="h-full overflow-y-auto scrollbar-hide">
                 <MobileHome
                   dayNotes={dayNotes}
                   currentYear={currentYear}
@@ -825,26 +825,29 @@ export default function Journal() {
             )}
             {/* Single profile instance — avoids remounting the first-run About modal */}
             <div
-              className={`absolute bottom-4 flex justify-center ${
-                expandedColumn === 'home' ? 'left-0 right-0' : 'left-0 right-0'
+              className={`absolute bottom-0 left-0 right-0 flex justify-center pb-5 pt-10 pointer-events-none ${
+                expandedColumn === 'home'
+                  ? 'bg-gradient-to-t from-tarot-dark via-tarot-dark/90 to-transparent'
+                  : ''
               }`}
-              onClick={(e) => e.stopPropagation()}
             >
-              <UserProfilePopover>
-                <button
-                  className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden"
-                >
-                  {isSignedIn ? (
-                    <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
-                  ) : (
-                    <img 
-                      src={placeholderAvatar} 
-                      alt="Anonymous avatar" 
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </button>
-              </UserProfilePopover>
+              <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                <UserProfilePopover>
+                  <button
+                    className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden shadow-[0_0_20px_rgba(185,144,107,0.15)]"
+                  >
+                    {isSignedIn ? (
+                      <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
+                    ) : (
+                      <img 
+                        src={placeholderAvatar} 
+                        alt="Anonymous avatar" 
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </button>
+                </UserProfilePopover>
+              </div>
             </div>
           </div>
         </motion.div>
