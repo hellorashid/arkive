@@ -262,8 +262,30 @@ export default function Journal() {
     dayScrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const getColumnFlex = (column: 'left' | 'middle' | 'right' | 'home') => {
-    return column === expandedColumn ? 20 : 1;
+  type DesktopColumn = 'left' | 'middle' | 'right' | 'home';
+  const COLLAPSED_WIDTH = 80;
+  const HOME_COLLAPSED_WIDTH = 80;
+  // Snappy ease-out — slightly faster than the old 0.4s material curve
+  const columnTransition = { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const };
+
+  // Fixed collapsed widths keep strips readable; expanded column takes remaining space.
+  // Avoids the old nested flex + ratio approach that smashed siblings when home opened.
+  const getColumnAnimate = (column: DesktopColumn) => {
+    // Use px strings — unitless flex-basis (except 0) is invalid CSS.
+    // Do NOT animate minWidth (framer warns: 'auto' is not animatable).
+    if (column === expandedColumn) {
+      return {
+        flexGrow: 1,
+        flexShrink: 1,
+        flexBasis: '0%',
+      };
+    }
+    const width = column === 'home' ? HOME_COLLAPSED_WIDTH : COLLAPSED_WIDTH;
+    return {
+      flexGrow: 0,
+      flexShrink: 0,
+      flexBasis: `${width}px`,
+    };
   };
 
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
@@ -555,276 +577,275 @@ export default function Journal() {
   return (
     <JournalProvider value={journalContextValue}>
     <div className="min-h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot">
-      <div className="flex h-screen">
-        {/* Columns container - Year, Month, Day */}
-        <div className="flex flex-1 h-full">
-          {/* Left sidebar - Year View */}
-          <motion.div 
-            onClick={() => setExpandedColumn('left')}
-            className="bg-tarot-dark border-r border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot"
-            animate={{ flex: getColumnFlex('left') }}
-            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
-              {expandedColumn === 'left' ? (
-                <div className="h-full overflow-y-auto scrollbar-hide">
-                  {years.map(year => (
-                    <div 
-                      key={year}
-                      className="bg-tarot-dark/50 border-b border-tarot-gold/20 min-h-[60vh] flex flex-col relative transition-colors duration-200"
-                    >
-                      <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{year}</h3>
-                        </div>
-                      </div>
-                      <div className="grow">
-                        <TiptapEditor
-                          content={yearNotes[String(year)] || null}
-                          onChange={(value) => handleYearNoteChange(year, value)}
-                          placeholder="how was your year?"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="h-full flex flex-col items-center">
-                  <div className="pt-4 flex flex-col items-center gap-2">
-                    <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
-                      {String(currentYear).slice(-2)}
-                    </span>
-                    <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
-                        style={{ height: `${yearProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Main content - Month View */}
-          <motion.div 
-            onClick={() => setExpandedColumn('middle')}
-            className="bg-tarot-dark border-r border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot"
-            animate={{ flex: getColumnFlex('middle') }}
-            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
-              {expandedColumn === 'middle' ? (
-                <div className="h-full overflow-y-auto scrollbar-hide">
-                  {Array.from({ length: currentMonthIndex + 1 }, (_, i) => i)
-                    .reverse()
-                    .map((monthIndex) => {
-                      const dateKey = formatMonthDateKey(currentYear, monthIndex);
-                      const monthName = getMonthName(monthIndex);
-                      return (
-                        <div 
-                          key={dateKey}
-                          className="bg-tarot-dark/50 border-b border-tarot-gold/20 min-h-[60vh] flex flex-col relative transition-colors duration-200"
-                        >
-                          <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
-                            <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{monthName}</h3>
-                          </div>
-                          <div className="grow">
-                            <TiptapEditor
-                              content={monthNotes[dateKey] || null}
-                              onChange={(value) => handleMonthNoteChange(currentYear, monthIndex, value)}
-                              placeholder="how was your month?"
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              ) : (
-                <div className="h-full flex flex-col items-center">
-                  <div className="pt-4 flex flex-col items-center gap-2">
-                    <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
-                      {expandedColumn === 'right' 
-                        ? new Date(visibleMonthYear, visibleMonthIndex, 1).toLocaleString('default', { month: 'short' })
-                        : currentMonth
-                      }
-                    </span>
-                    <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
-                        style={{ 
-                          height: expandedColumn === 'right'
-                            ? `${(visibleMonthIndex === currentMonthIndex && visibleMonthYear === currentYear) ? monthProgress : 100}%`
-                            : `${monthProgress}%`
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-
-          {/* Right column - Day View */}
-          <motion.div 
-            onClick={() => setExpandedColumn('right')}
-            className="bg-tarot-dark border-r border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot"
-            animate={{ flex: getColumnFlex('right') }}
-            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-          >
-            <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
-              {expandedColumn === 'right' ? (
-                <div ref={dayScrollContainerRef} className="h-full overflow-y-auto scrollbar-hide relative">
-                  {visibleDays().map((entry) => (
-                    <div 
-                      key={entry.dateKey}
-                      data-day-entry
-                      data-month={entry.month}
-                      data-year={entry.year}
-                      data-day={entry.day}
-                      className="bg-tarot-dark/50 border-b border-tarot-gold/20 min-h-[60vh] flex flex-col relative transition-colors duration-200"
-                    >
-                      <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
-                        <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">
-                          {entry.isFirstOfMonth && (
-                            <span className="text-tarot-gold/60 mr-2">{getMonthName(entry.month)}</span>
-                          )}
-                          {entry.day}
-                        </h3>
-                      </div>
-                      <div className="grow">
-                        <TiptapEditor
-                          content={dayNotes[entry.dateKey] || null}
-                          onChange={(value) => handleDayNoteChange(entry.dateKey, value)}
-                          placeholder="how was your day?"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  {/* Sentinel for infinite scroll */}
-                  <div 
-                    ref={loadMoreSentinelRef} 
-                    className="h-20 flex items-center justify-center text-tarot-gold/30 text-sm"
-                  >
-                    {loadedMonthsCount < 12 ? 'Scroll for more...' : ''}
-                  </div>
-                  
-                  {/* Scroll to top button */}
-                  <AnimatePresence>
-                    {showScrollToTop && (
-                      <motion.button
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2, ease: 'easeOut' }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          scrollToTop();
-                        }}
-                        className="fixed bottom-6 right-28 w-10 h-10 rounded-full bg-tarot-gold/20 border border-tarot-gold/50 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 shadow-lg backdrop-blur-sm z-20"
-                        aria-label="Scroll to top"
-                      >
-                        <svg 
-                          xmlns="http://www.w3.org/2000/svg" 
-                          width="20" 
-                          height="20" 
-                          viewBox="0 0 24 24" 
-                          fill="none" 
-                          stroke="currentColor" 
-                          strokeWidth="2" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round"
-                          className="text-tarot-gold-light"
-                        >
-                          <path d="m18 15-6-6-6 6"/>
-                        </svg>
-                      </motion.button>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <div className="h-full flex flex-col items-center">
-                  <div className="pt-4 flex flex-col items-center gap-2">
-                    <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
-                      {visibleDay}
-                    </span>
-                    <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
-                      <div 
-                        className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
-                        style={{ 
-                          height: visibleMonthIndex === currentMonthIndex && visibleMonthYear === currentYear && visibleDay === currentDay
-                            ? `${dayProgress}%` 
-                            : '100%'
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Home Panel - Fourth sliding column */}
+      {/* Single flex row: all four panels share one sizing model */}
+      <div className="flex h-screen w-full">
+        {/* Year View */}
         <motion.div 
-          onClick={() => setExpandedColumn('home')}
-          className="bg-tarot-dark border-l border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot"
-          animate={
-            expandedColumn === 'home'
-              ? { flex: 20, width: 'auto' }
-              : { flex: '0 0 80px', width: '80px' }
-          }
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          onClick={() => setExpandedColumn('left')}
+          className={`min-w-0 bg-tarot-dark border-r border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot ${
+            expandedColumn === 'left' ? 'relative z-0' : 'relative z-10'
+          }`}
+          initial={false}
+          animate={getColumnAnimate('left')}
+          transition={columnTransition}
         >
           <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
-            {expandedColumn === 'home' ? (
+            {expandedColumn === 'left' ? (
               <div className="h-full overflow-y-auto scrollbar-hide">
+                {years.map(year => (
+                  <div 
+                    key={year}
+                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 min-h-[60vh] flex flex-col relative transition-colors duration-200"
+                  >
+                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{year}</h3>
+                      </div>
+                    </div>
+                    <div className="grow">
+                      <TiptapEditor
+                        content={yearNotes[String(year)] || null}
+                        onChange={(value) => handleYearNoteChange(year, value)}
+                        placeholder="how was your year?"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-full w-20 flex flex-col items-center">
+                <div className="pt-4 flex flex-col items-center gap-2">
+                  <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
+                    {String(currentYear).slice(-2)}
+                  </span>
+                  <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
+                      style={{ height: `${yearProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Month View */}
+        <motion.div 
+          onClick={() => setExpandedColumn('middle')}
+          className={`min-w-0 bg-tarot-dark border-r border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot ${
+            expandedColumn === 'middle' ? 'relative z-0' : 'relative z-10'
+          }`}
+          initial={false}
+          animate={getColumnAnimate('middle')}
+          transition={columnTransition}
+        >
+          <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
+            {expandedColumn === 'middle' ? (
+              <div className="h-full overflow-y-auto scrollbar-hide">
+                {Array.from({ length: currentMonthIndex + 1 }, (_, i) => i)
+                  .reverse()
+                  .map((monthIndex) => {
+                    const dateKey = formatMonthDateKey(currentYear, monthIndex);
+                    const monthName = getMonthName(monthIndex);
+                    return (
+                      <div 
+                        key={dateKey}
+                        className="bg-tarot-dark/50 border-b border-tarot-gold/20 min-h-[60vh] flex flex-col relative transition-colors duration-200"
+                      >
+                        <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
+                          <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">{monthName}</h3>
+                        </div>
+                        <div className="grow">
+                          <TiptapEditor
+                            content={monthNotes[dateKey] || null}
+                            onChange={(value) => handleMonthNoteChange(currentYear, monthIndex, value)}
+                            placeholder="how was your month?"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="h-full w-20 flex flex-col items-center">
+                <div className="pt-4 flex flex-col items-center gap-2">
+                  <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
+                    {expandedColumn === 'right' 
+                      ? new Date(visibleMonthYear, visibleMonthIndex, 1).toLocaleString('default', { month: 'short' })
+                      : currentMonth
+                    }
+                  </span>
+                  <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
+                      style={{ 
+                        height: expandedColumn === 'right'
+                          ? `${(visibleMonthIndex === currentMonthIndex && visibleMonthYear === currentYear) ? monthProgress : 100}%`
+                          : `${monthProgress}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Day View */}
+        <motion.div 
+          onClick={() => setExpandedColumn('right')}
+          className={`min-w-0 bg-tarot-dark border-r border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot ${
+            expandedColumn === 'right' ? 'relative z-0' : 'relative z-10'
+          }`}
+          initial={false}
+          animate={getColumnAnimate('right')}
+          transition={columnTransition}
+        >
+          <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark">
+            {expandedColumn === 'right' ? (
+              <div ref={dayScrollContainerRef} className="h-full overflow-y-auto scrollbar-hide relative">
+                {visibleDays().map((entry) => (
+                  <div 
+                    key={entry.dateKey}
+                    data-day-entry
+                    data-month={entry.month}
+                    data-year={entry.year}
+                    data-day={entry.day}
+                    className="bg-tarot-dark/50 border-b border-tarot-gold/20 min-h-[60vh] flex flex-col relative transition-colors duration-200"
+                  >
+                    <div className="sticky top-0 z-10 px-4 py-3 border-b border-tarot-gold/30 bg-tarot-dark/80 backdrop-blur-sm shadow-tarot">
+                      <h3 className="text-lg font-semibold text-tarot-gold-light tracking-wide">
+                        {entry.isFirstOfMonth && (
+                          <span className="text-tarot-gold/60 mr-2">{getMonthName(entry.month)}</span>
+                        )}
+                        {entry.day}
+                      </h3>
+                    </div>
+                    <div className="grow">
+                      <TiptapEditor
+                        content={dayNotes[entry.dateKey] || null}
+                        onChange={(value) => handleDayNoteChange(entry.dateKey, value)}
+                        placeholder="how was your day?"
+                      />
+                    </div>
+                  </div>
+                ))}
+                {/* Sentinel for infinite scroll */}
+                <div 
+                  ref={loadMoreSentinelRef} 
+                  className="h-20 flex items-center justify-center text-tarot-gold/30 text-sm"
+                >
+                  {loadedMonthsCount < 12 ? 'Scroll for more...' : ''}
+                </div>
+                
+                {/* Scroll to top button */}
+                <AnimatePresence>
+                  {showScrollToTop && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        scrollToTop();
+                      }}
+                      className="fixed bottom-6 right-28 w-10 h-10 rounded-full bg-tarot-gold/20 border border-tarot-gold/50 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 shadow-lg backdrop-blur-sm z-20"
+                      aria-label="Scroll to top"
+                    >
+                      <svg 
+                        xmlns="http://www.w3.org/2000/svg" 
+                        width="20" 
+                        height="20" 
+                        viewBox="0 0 24 24" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        strokeWidth="2" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        className="text-tarot-gold-light"
+                      >
+                        <path d="m18 15-6-6-6 6"/>
+                      </svg>
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="h-full w-20 flex flex-col items-center">
+                <div className="pt-4 flex flex-col items-center gap-2">
+                  <span className="text-tarot-gold-light font-semibold text-lg tracking-wider">
+                    {visibleDay}
+                  </span>
+                  <div className="relative h-[80vh] w-1 bg-tarot-gold/20 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-linear-to-b from-tarot-gold to-tarot-gold-dark w-full transition-all duration-300"
+                      style={{ 
+                        height: visibleMonthIndex === currentMonthIndex && visibleMonthYear === currentYear && visibleDay === currentDay
+                          ? `${dayProgress}%` 
+                          : '100%'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Home Panel — sticks to right edge when collapsed */}
+        <motion.div 
+          onClick={() => setExpandedColumn('home')}
+          className={`min-w-0 bg-tarot-dark border-l border-tarot-gold/30 cursor-pointer overflow-hidden shadow-tarot ${
+            expandedColumn === 'home' ? 'relative z-0' : 'relative z-10'
+          }`}
+          initial={false}
+          animate={getColumnAnimate('home')}
+          transition={columnTransition}
+        >
+          <div className="h-full bg-linear-to-b from-tarot-darker to-tarot-dark relative">
+            {expandedColumn === 'home' ? (
+              <div className="h-full overflow-y-auto scrollbar-hide pb-20">
                 <MobileHome
                   dayNotes={dayNotes}
                   currentYear={currentYear}
                   currentMonthIndex={currentMonthIndex}
                   currentDay={currentDay}
                   userName={isSignedIn ? userName : undefined}
+                  compact
                 />
-                {/* Profile avatar at bottom of expanded home panel */}
-                <div className="sticky bottom-0 w-full flex justify-center pb-4 bg-gradient-to-t from-tarot-dark via-tarot-dark to-transparent pt-4">
-                  <UserProfilePopover>
-                    <button className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden">
-                      {isSignedIn ? (
-                        <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
-                      ) : (
-                        <img 
-                          src={placeholderAvatar} 
-                          alt="Anonymous avatar" 
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </button>
-                  </UserProfilePopover>
-                </div>
               </div>
             ) : (
-              <div className="w-20 h-full flex flex-col items-center justify-between pt-4 pb-4">
+              <div className="w-20 h-full flex flex-col items-center pt-4">
                 <TarotClock />
-                <div className="flex flex-col items-center gap-3">
-                  <UserProfilePopover>
-                    <button className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden">
-                      {isSignedIn ? (
-                        <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
-                      ) : (
-                        <img 
-                          src={placeholderAvatar} 
-                          alt="Anonymous avatar" 
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </button>
-                  </UserProfilePopover>
-                </div>
               </div>
             )}
+            {/* Single profile instance — avoids remounting the first-run About modal */}
+            <div
+              className={`absolute bottom-4 flex justify-center ${
+                expandedColumn === 'home' ? 'left-0 right-0' : 'left-0 right-0'
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <UserProfilePopover>
+                <button
+                  className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden"
+                >
+                  {isSignedIn ? (
+                    <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
+                  ) : (
+                    <img 
+                      src={placeholderAvatar} 
+                      alt="Anonymous avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </button>
+              </UserProfilePopover>
+            </div>
           </div>
         </motion.div>
       </div>

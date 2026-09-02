@@ -8,6 +8,8 @@ interface MobileHomeProps {
   currentMonthIndex: number;
   currentDay: number;
   userName?: string;
+  /** Soften layout for desktop sliding panel (less bottom padding, no entrance motion) */
+  compact?: boolean;
 }
 
 // Helper to format date key for day entries (YYYY-MM-DD)
@@ -108,6 +110,7 @@ export default function MobileHome({
   currentMonthIndex,
   currentDay,
   userName,
+  compact = false,
 }: MobileHomeProps) {
   const [time, setTime] = useState(new Date());
   const [viewingMonth, setViewingMonth] = useState(currentMonthIndex);
@@ -265,13 +268,19 @@ export default function MobileHome({
     };
   };
 
+  const motionProps = compact
+    ? { initial: false as const, animate: { opacity: 1, y: 0, scale: 1 }, transition: { duration: 0 } }
+    : undefined;
+
   return (
-    <div className="min-h-full p-4 pb-20">
+    <div className={`min-h-full p-4 ${compact ? 'pb-8' : 'pb-20'}`}>
       {/* Header with Time */}
       <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        {...(motionProps ?? {
+          initial: { opacity: 0, y: -20 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.5 },
+        })}
         className="text-center mb-6"
       >
         <div className="text-tarot-gold-light text-3xl mb-1 animate-pulse">
@@ -284,9 +293,11 @@ export default function MobileHome({
 
       {/* Welcome Message & Date */}
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+        {...(motionProps ?? {
+          initial: { opacity: 0 },
+          animate: { opacity: 1 },
+          transition: { duration: 0.5, delay: 0.1 },
+        })}
         className="text-center mb-6"
       >
         <h1 className="text-tarot-gold-light text-xl font-tarot mb-1">
@@ -299,9 +310,11 @@ export default function MobileHome({
 
       {/* Radial Sun Tracker with Navigation */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
+        {...(motionProps ?? {
+          initial: { opacity: 0, scale: 0.9 },
+          animate: { opacity: 1, scale: 1 },
+          transition: { duration: 0.6, delay: 0.2 },
+        })}
         className="relative mb-6"
       >
         {/* Navigation Arrows */}
@@ -450,9 +463,11 @@ export default function MobileHome({
 
       {/* Motivational Quote */}
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
+        {...(motionProps ?? {
+          initial: { opacity: 0, y: 20 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.5, delay: 0.4 },
+        })}
         className="bg-tarot-dark/30 border border-tarot-gold/10 rounded-xl p-4 text-center"
       >
         <div className="text-tarot-gold/20 text-2xl mb-2">✦</div>
@@ -464,9 +479,11 @@ export default function MobileHome({
 
       {/* Quick Insight */}
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.5 }}
+        {...(motionProps ?? {
+          initial: { opacity: 0, y: 20 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.5, delay: 0.5 },
+        })}
         className="mt-4 bg-gradient-to-r from-tarot-gold/5 to-transparent border-l-2 border-tarot-gold/30 rounded-r-xl p-4"
       >
         <h3 className="text-tarot-gold-light text-sm font-semibold mb-1">Quick Insight</h3>
