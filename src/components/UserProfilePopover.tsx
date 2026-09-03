@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as Popover from '@radix-ui/react-popover';
@@ -28,8 +28,10 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
     }
   }, []);
   
-  // Close About modal and mark as visited
-  const closeAbout = () => {
+  // Close About modal and mark as visited.
+  // stopPropagation so backdrop clicks don't bubble to the home column onClick.
+  const closeAbout = (e?: MouseEvent) => {
+    e?.stopPropagation();
     setAboutOpen(false);
     localStorage.setItem(VISITED_KEY, 'true');
   };
