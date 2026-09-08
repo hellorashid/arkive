@@ -197,7 +197,7 @@ export default function Settings() {
       // Load yearly placeholders
       for (const { year, entry } of yearlyPlaceholders as YearlyPlaceholder[]) {
         const dateKey = year; // Just the year, e.g., "2025"
-        await db.collection('entries').add({
+        await db.collection('entries').create({
           date: dateKey,
           content: textToTiptapJSON(entry),
         });
@@ -206,7 +206,7 @@ export default function Settings() {
       // Load monthly placeholders
       for (const { month, entry } of monthlyPlaceholders as MonthlyPlaceholder[]) {
         // month is in format "YYYY-MM"
-        await db.collection('entries').add({
+        await db.collection('entries').create({
           date: month,
           content: textToTiptapJSON(entry),
         });
@@ -215,7 +215,7 @@ export default function Settings() {
       // Load daily placeholders
       for (const { date, entry } of dailyPlaceholders as DailyPlaceholder[]) {
         // date is in format "YYYY-MM-DD"
-        await db.collection('entries').add({
+        await db.collection('entries').create({
           date: date,
           content: textToTiptapJSON(entry),
         });
