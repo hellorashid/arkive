@@ -36,13 +36,13 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
     localStorage.setItem(VISITED_KEY, 'true');
   };
   
-  const { user, signin, signout, isSignedIn } = useBasic();
+  const { user, signIn, signOut, isSignedIn } = useBasic();
 
   const handleAuthClick = () => {
     if (isSignedIn) {
-      signout();
+      signOut();
     } else {
-      signin();
+      signIn();
     }
   };
 

@@ -74,7 +74,7 @@ export default function Settings() {
   const [isPWASupported, setIsPWASupported] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   
-  const { db, isSignedIn, signout } = useBasic();
+  const { db, isSignedIn, signOut } = useBasic();
 
   useEffect(() => {
     setSettings(getAISettings());
@@ -259,7 +259,7 @@ export default function Settings() {
 
       // Sign out if signed in
       if (isSignedIn) {
-        signout();
+        signOut();
       }
 
       alert('All local data has been cleared.');
