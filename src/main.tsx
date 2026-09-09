@@ -7,7 +7,7 @@ import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BasicProvider project_id={basicConfig.project_id} schema={basicConfig}>
+    <BasicProvider clientId={basicConfig.clientId} schema={basicConfig}>
       <App />
     </BasicProvider>
   </StrictMode>

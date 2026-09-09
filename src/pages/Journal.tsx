@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBasic } from '@basictech/react';
+import type { BasicError } from '@basictech/core';
 import { JSONContent } from '@tiptap/react';
 import TarotClock from '../components/TarotClock';
 import UserProfilePopover from '../components/UserProfilePopover';
@@ -74,7 +75,7 @@ type JournalEntry = {
 
 export default function Journal() {
   const isMobile = useIsMobile();
-  const { db, isSignedIn, user } = useBasic();
+  const { db, isSignedIn, user, canWrite, status, signIn } = useBasic();
   
   const [expandedColumn, setExpandedColumn] = useState<'left' | 'middle' | 'right' | 'home'>('home');
   const [currentYear] = useState(new Date().getFullYear());
@@ -127,7 +128,13 @@ export default function Journal() {
     
     const loadEntries = async () => {
       try {
-        const entries = await db.collection('entries').getAll() as JournalEntry[];
+        const page = await db.collection('entries').list();
+        const entries = page.data.map(record => ({
+          id: record.id,
+          date: record.value.date,
+          content: record.value.content
+        })) as JournalEntry[];
+        
         const newYearNotes: Record<string, JSONContent> = {};
         const newMonthNotes: Record<string, JSONContent> = {};
         const newDayNotes: Record<string, JSONContent> = {};
@@ -294,25 +301,41 @@ export default function Journal() {
   const saveEntry = async (date: string, content: JSONContent) => {
     if (!db) return;
     
+    // Check if we can write (auth not expired)
+    if (!canWrite) {
+      console.warn('Cannot write: auth may be expired or read-only');
+      // If expired, prompt re-authentication
+      if (status === 'expired') {
+        console.log('Auth expired - prompting sign in');
+        // Don't auto-clear storage - let user reauthorize to preserve cached data
+        return;
+      }
+    }
+    
     try {
       const existingId = entryIds[date];
       if (existingId) {
         // Update existing entry
-        await db.collection('entries').update(existingId, {
+        await db.collection('entries').put(existingId, {
           date,
           content,
         });
       } else {
-        // Add new entry
-        const result = await db.collection('entries').add({
+        // Create new entry
+        const result = await db.collection('entries').create({
           date,
           content,
         });
-        if (result?.id) {
-          setEntryIds(prev => ({ ...prev, [date]: result.id }));
-        }
+        setEntryIds(prev => ({ ...prev, [date]: result.record.id }));
       }
     } catch (error) {
+      // Check for auth expiry error
+      const basicError = error as BasicError;
+      if (basicError?.code === 'AUTH_EXPIRED') {
+        console.warn('Auth expired during save - user needs to sign in again');
+        // Don't auto-signOut or clear storage - preserve cached views
+        return;
+      }
       console.error('Failed to save journal entry:', error);
     }
   };
@@ -403,6 +426,13 @@ export default function Journal() {
     return (
       <JournalProvider value={journalContextValue}>
         <div className="h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot">
+          {/* Auth expiry banner */}
+          {status === 'expired' && (
+            <div className="fixed top-0 left-0 right-0 z-50 bg-tarot-gold/90 text-tarot-dark px-4 py-2 text-center text-sm font-medium">
+              Session expired. <button onClick={() => signIn()} className="underline font-semibold">Sign in again</button> to save changes.
+            </div>
+          )}
+          
           {/* Mobile top bar with avatar */}
           <div className="fixed top-0 right-0 z-30 pt-2 pr-3">
             <UserProfilePopover>
@@ -577,6 +607,13 @@ export default function Journal() {
   return (
     <JournalProvider value={journalContextValue}>
     <div className="min-h-screen w-screen bg-linear-to-br from-tarot-darker to-tarot-dark font-tarot">
+      {/* Auth expiry banner */}
+      {status === 'expired' && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-tarot-gold/90 text-tarot-dark px-4 py-2 text-center text-sm font-medium shadow-lg">
+          Session expired. <button onClick={() => signIn()} className="underline font-semibold">Sign in again</button> to save changes.
+        </div>
+      )}
+      
       {/* Single flex row: all four panels share one sizing model */}
       <div className="flex h-screen w-full">
         {/* Year View */}
