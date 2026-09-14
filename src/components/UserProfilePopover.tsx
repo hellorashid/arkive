@@ -1,24 +1,19 @@
 import { useState, useEffect, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import * as Popover from '@radix-ui/react-popover';
-import { X } from 'lucide-react';
-import { useBasic } from '@basictech/react';
-import OrnateButton from './OrnateButton';
-import { useIsMobile } from '../hooks/useIsMobile';
-import placeholderAvatar from '../placeholder_avatar.png';
+import { X, Settings } from 'lucide-react';
+import { UserMenu } from '@basictech/react';
 import packageJson from '../../package.json';
 
 const VISITED_KEY = 'journal_has_visited';
 
 interface UserProfilePopoverProps {
-  children: React.ReactNode;
+  className?: string;
+  size?: number;
 }
 
-const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => {
-  const [open, setOpen] = useState(false);
+const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ className = '', size = 48 }) => {
   const [aboutOpen, setAboutOpen] = useState(false);
-  const isMobile = useIsMobile();
   
   // Show About modal on first visit
   useEffect(() => {
@@ -35,194 +30,36 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
     setAboutOpen(false);
     localStorage.setItem(VISITED_KEY, 'true');
   };
-  
-  const { user, signIn, signOut, isSignedIn } = useBasic();
-
-  const handleAuthClick = () => {
-    if (isSignedIn) {
-      signOut();
-    } else {
-      signIn();
-    }
-  };
-
-  // Get user display info
-  const userName = user?.name || 'User';
-  const userInitial = userName.charAt(0).toUpperCase();
-
-  // Shared popover inner content
-  const PopoverInner = () => (
-    <>
-      {/* Corner decorations */}
-      <div className="card-corner top left"></div>
-      <div className="card-corner top right"></div>
-      <div className="card-corner bottom left"></div>
-      <div className="card-corner bottom right"></div>
-
-      {/* User Profile Section */}
-      <motion.div 
-        className="mb-6"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.05 }}
-      >
-        {/* Avatar - Centered */}
-        <div className="flex flex-col items-center mb-4">
-          <motion.div 
-            className="w-16 h-16 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/40 flex items-center justify-center shadow-tarot mb-3 overflow-hidden"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3, delay: 0.1, ease: 'easeOut' }}
-          >
-            {isSignedIn ? (
-              <div className="text-tarot-gold-light text-2xl font-semibold font-tarot">
-                {userInitial}
-              </div>
-            ) : (
-              <img 
-                src={placeholderAvatar} 
-                alt="Anonymous avatar" 
-                className="w-full h-full object-cover"
-              />
-            )}
-          </motion.div>
-          <div className="text-center">
-            <div className="text-tarot-gold-light font-semibold text-base font-tarot tracking-wide">
-              {isSignedIn ? userName : 'hi, anon'}
-            </div>
-          </div>
-        </div>
-
-        {/* Login/Logout Button */}
-        <OrnateButton onClick={handleAuthClick}>
-          {isSignedIn ? 'Sign Out' : 'Sign In'}
-        </OrnateButton>
-      </motion.div>
-
-      {/* Menu Items */}
-      <motion.div 
-        className="space-y-2 mb-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2, delay: 0.15 }}
-      >
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.2, delay: 0.2 }}
-        >
-          <Link 
-            to="/settings"
-            className="block w-full text-left px-4 py-2.5 text-sm text-white/90 hover:bg-tarot-gold/10 hover:text-tarot-gold-light rounded border border-transparent hover:border-tarot-gold/20 transition-all duration-200 font-tarot"
-            onClick={() => setOpen(false)}
-          >
-            Preferences
-          </Link>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.2, delay: 0.25 }}
-        >
-          <button 
-            className="w-full text-left px-4 py-2.5 text-sm text-white/90 hover:bg-tarot-gold/10 hover:text-tarot-gold-light rounded border border-transparent hover:border-tarot-gold/20 transition-all duration-200 font-tarot"
-            onClick={() => {
-              setOpen(false);
-              setAboutOpen(true);
-            }}
-          >
-            About
-          </button>
-        </motion.div>
-      </motion.div>
-
-      {/* Footer Section */}
-      <motion.div 
-        className="pt-4 border-t border-tarot-gold/30 relative"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.35 }}
-      >
-        {/* Decorative elements */}
-        <div className="absolute top-0 left-0 w-4 h-px bg-tarot-gold/50"></div>
-        <div className="absolute top-0 right-0 w-4 h-px bg-tarot-gold/50"></div>
-        <div className="text-center">
-          <div className="text-tarot-gold-light/80 text-xs font-tarot tracking-wider">
-            Arkive (beta) v{packageJson.version}
-          </div>
-        </div>
-      </motion.div>
-    </>
-  );
 
   return (
-    <>
-      {/* Backdrop overlay */}
-      <AnimatePresence>
-        {open && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/50 z-40"
-            onClick={() => setOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {isMobile ? (
-        /* Mobile: Simple trigger + centered modal */
-        <>
-          <div onClick={() => setOpen(true)}>
-            {children}
-          </div>
-          <AnimatePresence>
-            {open && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
-              >
-                <div className="w-80 bg-tarot-dark border border-tarot-gold-light shadow-tarot-glow p-6 relative pointer-events-auto">
-                  <PopoverInner />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </>
-      ) : (
-        /* Desktop: Radix Popover with positioned content */
-        <Popover.Root open={open} onOpenChange={setOpen}>
-          <Popover.Trigger asChild>
-            {children}
-          </Popover.Trigger>
-          <AnimatePresence>
-            {open && (
-              <Popover.Portal forceMount>
-                <Popover.Content
-                  className="w-80 bg-tarot-dark border border-tarot-gold-light shadow-tarot-glow p-6 z-50 focus:outline-none relative"
-                  side="left"
-                  sideOffset={8}
-                  align="end"
-                  asChild
-                >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, x: 10 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, x: 10 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                  >
-                    <PopoverInner />
-                  </motion.div>
-                </Popover.Content>
-              </Popover.Portal>
-            )}
-          </AnimatePresence>
-        </Popover.Root>
-      )}
+    <div className={`flex items-center gap-2 ${className}`}>
+      {/* SDK UserMenu with avatar trigger */}
+      <UserMenu 
+        trigger="avatar"
+        avatarProps={{ 
+          size,
+          className: 'cursor-pointer'
+        }}
+        className="basic-ui"
+      />
+      
+      {/* Arkive-specific buttons */}
+      <div className="flex gap-1">
+        <Link
+          to="/settings"
+          className="w-8 h-8 rounded-full bg-tarot-gold/10 border border-tarot-gold/30 flex items-center justify-center hover:bg-tarot-gold/20 hover:border-tarot-gold/40 transition-colors duration-200"
+          title="Preferences"
+        >
+          <Settings size={14} className="text-tarot-gold-light" />
+        </Link>
+        <button
+          onClick={() => setAboutOpen(true)}
+          className="w-8 h-8 rounded-full bg-tarot-gold/10 border border-tarot-gold/30 flex items-center justify-center hover:bg-tarot-gold/20 hover:border-tarot-gold/40 transition-colors duration-200 text-tarot-gold-light text-xs font-tarot font-semibold"
+          title="About Arkive"
+        >
+          ?
+        </button>
+      </div>
 
       {/* About Modal */}
       <AnimatePresence>
@@ -336,7 +173,7 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ children }) => 
           </>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 };
 

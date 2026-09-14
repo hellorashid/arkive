@@ -10,7 +10,6 @@ import MobileTabBar from '../components/MobileTabBar';
 import MobileDrawer from '../components/MobileDrawer';
 import MobileHome from '../components/MobileHome';
 import { useIsMobile } from '../hooks/useIsMobile';
-import placeholderAvatar from '../placeholder_avatar.png';
 import { JournalProvider } from '../lib/journal-context';
 
 // Helper to get days in a month
@@ -419,7 +418,6 @@ export default function Journal() {
 
   // Get user display info
   const userName = user?.name || 'User';
-  const userInitial = userName.charAt(0).toUpperCase();
 
   // Mobile Layout
   if (isMobile) {
@@ -435,19 +433,7 @@ export default function Journal() {
           
           {/* Mobile top bar with avatar */}
           <div className="fixed top-0 right-0 z-30 pt-2 pr-3">
-            <UserProfilePopover>
-              <button className="w-10 h-10 rounded-full bg-tarot-dark/90 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none overflow-hidden backdrop-blur-sm">
-                {isSignedIn ? (
-                  <div className="text-tarot-gold-light text-sm font-semibold">{userInitial}</div>
-                ) : (
-                  <img 
-                    src={placeholderAvatar} 
-                    alt="Anonymous avatar" 
-                    className="w-full h-full object-cover"
-                  />
-                )}
-              </button>
-            </UserProfilePopover>
+            <UserProfilePopover size={40} />
           </div>
           
           {/* Content Area - fixed position for reliable sticky behavior */}
@@ -869,21 +855,7 @@ export default function Journal() {
               }`}
             >
               <div className="pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                <UserProfilePopover>
-                  <button
-                    className="w-12 h-12 rounded-full bg-tarot-gold/20 border-2 border-tarot-gold/30 flex items-center justify-center cursor-pointer hover:bg-tarot-gold/30 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tarot-gold/50 overflow-hidden shadow-[0_0_20px_rgba(185,144,107,0.15)]"
-                  >
-                    {isSignedIn ? (
-                      <div className="text-tarot-gold-light text-lg font-semibold">{userInitial}</div>
-                    ) : (
-                      <img 
-                        src={placeholderAvatar} 
-                        alt="Anonymous avatar" 
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </button>
-                </UserProfilePopover>
+                <UserProfilePopover size={48} />
               </div>
             </div>
           </div>
