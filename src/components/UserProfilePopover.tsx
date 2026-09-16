@@ -1,8 +1,7 @@
 import { useState, useEffect, type MouseEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Settings } from 'lucide-react';
-import { UserMenu } from '@basictech/react';
+import { X, Settings, Info } from 'lucide-react';
+import { UserMenu, type UserMenuItem } from '@basictech/react';
 import packageJson from '../../package.json';
 
 const VISITED_KEY = 'journal_has_visited';
@@ -22,6 +21,22 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ className = '',
       setAboutOpen(true);
     }
   }, []);
+
+  // Menu items for the account menu
+  const menuItems: UserMenuItem[] = [
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: <Settings size={16} />,
+      href: '/settings',
+    },
+    {
+      id: 'about',
+      label: 'About Arkive',
+      icon: <Info size={16} />,
+      onClick: () => setAboutOpen(true),
+    },
+  ];
   
   // Close About modal and mark as visited.
   // stopPropagation so backdrop clicks don't bubble to the home column onClick.
@@ -33,33 +48,16 @@ const UserProfilePopover: React.FC<UserProfilePopoverProps> = ({ className = '',
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {/* SDK UserMenu with avatar trigger */}
+      {/* SDK UserMenu with avatar trigger and custom menu items */}
       <UserMenu 
         trigger="avatar"
         avatarProps={{ 
           size,
           className: 'cursor-pointer'
         }}
+        menuItems={menuItems}
         className="basic-ui"
       />
-      
-      {/* Arkive-specific buttons */}
-      <div className="flex gap-1">
-        <Link
-          to="/settings"
-          className="w-8 h-8 rounded-full bg-tarot-gold/10 border border-tarot-gold/30 flex items-center justify-center hover:bg-tarot-gold/20 hover:border-tarot-gold/40 transition-colors duration-200"
-          title="Preferences"
-        >
-          <Settings size={14} className="text-tarot-gold-light" />
-        </Link>
-        <button
-          onClick={() => setAboutOpen(true)}
-          className="w-8 h-8 rounded-full bg-tarot-gold/10 border border-tarot-gold/30 flex items-center justify-center hover:bg-tarot-gold/20 hover:border-tarot-gold/40 transition-colors duration-200 text-tarot-gold-light text-xs font-tarot font-semibold"
-          title="About Arkive"
-        >
-          ?
-        </button>
-      </div>
 
       {/* About Modal */}
       <AnimatePresence>
