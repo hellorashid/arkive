@@ -19,11 +19,7 @@ export default function TabLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.tabIconDefault + '30',
         },
-        headerShown: useClientOnlyValue(false, true),
-        headerStyle: {
-          backgroundColor: colors.background,
-        },
-        headerTintColor: colors.text,
+        headerShown: false,
       }}>
       <Tabs.Screen
         name="year"
