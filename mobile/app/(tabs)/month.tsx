@@ -1,25 +1,10 @@
-import { StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
-import { Text, View } from '@/components/Themed';
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
-import { getAllEntries, saveEntry, JournalEntry, formatMonthDateKey, getMonthName } from '@/lib/storage';
-
-interface MonthEntryState {
-  monthIndex: number;
-  dateKey: string;
-  name: string;
-  content: string;
-  expanded: boolean;
-  hasContent: boolean;
-}
+import { useEffect, useRef, useState } from 'react';
+import JournalTimeline, { TimelineItem } from '@/components/JournalTimeline';
+import { formatMonthDateKey, getAllEntries, getMonthName, saveEntry } from '@/lib/storage';
 
 export default function MonthScreen() {
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'dark'];
-  const [monthStates, setMonthStates] = useState<MonthEntryState[]>([]);
-  const saveTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
-
+  const [items, setItems] = useState<TimelineItem[]>([]);
+  const saveTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const currentYear = new Date().getFullYear();
   const currentMonthIndex = new Date().getMonth();
 
@@ -29,161 +14,42 @@ export default function MonthScreen() {
 
   const loadEntries = async () => {
     const monthEntries = await getAllEntries('month');
-    
-    const months = Array.from({ length: currentMonthIndex + 1 }, (_, i) => {
-      const monthIdx = currentMonthIndex - i;
-      const dateKey = formatMonthDateKey(currentYear, monthIdx);
-      const entry = monthEntries.find(e => e.date === dateKey);
-      
-      return {
-        monthIndex: monthIdx,
-        dateKey,
-        name: getMonthName(monthIdx),
-        content: entry?.content || '',
-        expanded: false,
-        hasContent: !!(entry?.content && entry.content.trim().length > 0),
-      };
-    });
-    
-    setMonthStates(months);
+    setItems(
+      Array.from({ length: currentMonthIndex + 1 }, (_, i) => {
+        const monthIndex = currentMonthIndex - i;
+        const key = formatMonthDateKey(currentYear, monthIndex);
+        const entry = monthEntries.find((e) => e.date === key);
+        const content = entry?.content || '';
+        return {
+          key,
+          title: getMonthName(monthIndex),
+          content,
+          expanded: false,
+          hasContent: content.trim().length > 0,
+          placeholder: 'how was your month?',
+        };
+      })
+    );
   };
 
-  const handleToggle = (dateKey: string) => {
-    setMonthStates(prev => prev.map(state => 
-      state.dateKey === dateKey 
-        ? { ...state, expanded: !state.expanded }
-        : state
-    ));
+  const handleToggle = (key: string) => {
+    setItems((prev) =>
+      prev.map((item) => (item.key === key ? { ...item, expanded: !item.expanded } : item))
+    );
   };
 
-  const handleContentChange = (dateKey: string, newContent: string) => {
-    setMonthStates(prev => prev.map(state =>
-      state.dateKey === dateKey
-        ? { ...state, content: newContent, hasContent: newContent.trim().length > 0 }
-        : state
-    ));
+  const handleChange = (key: string, content: string) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.key === key ? { ...item, content, hasContent: content.trim().length > 0 } : item
+      )
+    );
 
-    // Debounced save
-    if (saveTimeouts.current[dateKey]) {
-      clearTimeout(saveTimeouts.current[dateKey]);
-    }
-    saveTimeouts.current[dateKey] = setTimeout(() => {
-      saveEntry(dateKey, newContent);
+    if (saveTimeouts.current[key]) clearTimeout(saveTimeouts.current[key]);
+    saveTimeouts.current[key] = setTimeout(() => {
+      saveEntry(key, content);
     }, 1000);
   };
 
-  return (
-    <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
-      <View style={[styles.dateHeader, { backgroundColor: colors.backgroundDark, borderBottomColor: colors.gold + '30' }]}>
-        <Text style={[styles.dateHeaderText, { color: colors.goldLight }]}>
-          {new Date(currentYear, currentMonthIndex).toLocaleString('default', { month: 'short' })}
-        </Text>
-      </View>
-      <ScrollView 
-        style={styles.container}
-        contentContainerStyle={styles.content}
-      >
-      {monthStates.map((state) => (
-        <View 
-          key={state.dateKey}
-          style={[
-            styles.entrySection,
-            { 
-              backgroundColor: state.hasContent ? colors.backgroundLight : 'transparent',
-              borderBottomColor: colors.gold + '20',
-              minHeight: state.expanded ? 300 : 'auto',
-            }
-          ]}
-        >
-          <Pressable
-            onPress={() => handleToggle(state.dateKey)}
-            style={[
-              styles.entryHeader,
-              { 
-                backgroundColor: colors.backgroundDark + 'CC',
-                borderBottomColor: colors.gold + '30',
-              }
-            ]}
-          >
-            <Text style={[styles.entryTitle, { color: colors.goldLight }]}>
-              {state.name}
-            </Text>
-            {!state.hasContent && !state.expanded && (
-              <Text style={[styles.placeholder, { color: colors.gold + '59' }]}>
-                how was your month?
-              </Text>
-            )}
-          </Pressable>
-
-          {(state.expanded || state.hasContent) && (
-            <TextInput
-              style={[
-                styles.entryInput,
-                {
-                  color: colors.text + 'E6',
-                  backgroundColor: 'transparent',
-                  minHeight: state.expanded ? 240 : 'auto',
-                }
-              ]}
-              multiline
-              placeholder={state.expanded ? "how was your month?" : ""}
-              placeholderTextColor={colors.gold + '59'}
-              value={state.content}
-              onChangeText={(text) => handleContentChange(state.dateKey, text)}
-              scrollEnabled={false}
-              onFocus={() => handleToggle(state.dateKey)}
-            />
-          )}
-        </View>
-      ))}
-    </ScrollView>
-    </View>
-  );
+  return <JournalTimeline items={items} onToggle={handleToggle} onChange={handleChange} />;
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-  },
-  dateHeader: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    alignItems: 'center',
-  },
-  dateHeaderText: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 2,
-  },
-  container: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: 20,
-  },
-  entrySection: {
-    borderBottomWidth: 1,
-  },
-  entryHeader: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  entryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-  },
-  placeholder: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  entryInput: {
-    padding: 16,
-    fontSize: 15,
-    lineHeight: 24,
-    textAlignVertical: 'top',
-  },
-});

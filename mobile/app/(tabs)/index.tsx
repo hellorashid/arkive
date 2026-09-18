@@ -1,6 +1,7 @@
 import { StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -103,6 +104,7 @@ export default function HomeScreen() {
           : 'Begin today. A single line is enough to open the archive.';
 
   return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: 'transparent' }]}>
         <Pressable 
@@ -206,6 +208,7 @@ export default function HomeScreen() {
         </Pressable>
       </Modal>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
