@@ -26,15 +26,6 @@ export default function TabLayout() {
         headerTintColor: colors.text,
       }}>
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="year"
         options={{
           title: 'Year',
@@ -58,6 +49,15 @@ export default function TabLayout() {
           title: 'Day',
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="sunny-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
           ),
         }}
       />

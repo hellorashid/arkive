@@ -79,10 +79,16 @@ export default function DayScreen() {
   };
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-    >
+    <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
+      <View style={[styles.dateHeader, { backgroundColor: colors.backgroundDark, borderBottomColor: colors.gold + '30' }]}>
+        <Text style={[styles.dateHeaderText, { color: colors.goldLight }]}>
+          {String(currentDay).padStart(2, '0')}
+        </Text>
+      </View>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
       {dayStates.map((state) => (
         <View 
           key={state.dateKey}

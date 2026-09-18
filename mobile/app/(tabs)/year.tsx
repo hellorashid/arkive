@@ -65,10 +65,16 @@ export default function YearScreen() {
   };
 
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
-    >
+    <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
+      <View style={[styles.dateHeader, { backgroundColor: colors.backgroundDark, borderBottomColor: colors.gold + '30' }]}>
+        <Text style={[styles.dateHeaderText, { color: colors.goldLight }]}>
+          {currentYear}
+        </Text>
+      </View>
+      <ScrollView 
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
       {yearStates.map((state, index) => (
         <View 
           key={state.year}
@@ -123,10 +129,25 @@ export default function YearScreen() {
         </View>
       ))}
     </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flex: 1,
+  },
+  dateHeader: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    alignItems: 'center',
+  },
+  dateHeaderText: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
   container: {
     flex: 1,
   },
