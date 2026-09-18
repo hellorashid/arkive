@@ -1,163 +1,147 @@
-import { StyleSheet, FlatList, Pressable, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { useState, useEffect } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { getAllEntries, saveEntry, JournalEntry, formatDayDateKey, getDaysInMonth, getMonthName } from '@/lib/storage';
+import { getAllEntries, saveEntry, formatDayDateKey, getMonthName } from '@/lib/storage';
 
-interface DayEntry {
+interface DayEntryState {
   year: number;
   month: number;
   day: number;
   dateKey: string;
   isFirstOfMonth: boolean;
+  content: string;
+  expanded: boolean;
+  hasContent: boolean;
 }
 
 export default function DayScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'dark'];
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
-  const [editorVisible, setEditorVisible] = useState(false);
-  const [editorContent, setEditorContent] = useState('');
+  const [dayStates, setDayStates] = useState<DayEntryState[]>([]);
+  const saveTimeouts = useRef<Record<string, NodeJS.Timeout>>({});
 
-  const loadEntries = async () => {
-    const dayEntries = await getAllEntries('day');
-    setEntries(dayEntries);
-  };
+  const currentYear = new Date().getFullYear();
+  const currentMonthIndex = new Date().getMonth();
+  const currentDay = new Date().getDate();
 
   useEffect(() => {
     loadEntries();
   }, []);
 
-  const handleOpenEditor = (dateKey: string) => {
-    const entry = entries.find(e => e.date === dateKey);
-    if (entry) {
-      setEditingEntry(entry);
-      setEditorContent(entry.content);
-    } else {
-      setEditingEntry({ date: dateKey, content: '', updatedAt: new Date().toISOString() });
-      setEditorContent('');
+  const loadEntries = async () => {
+    const dayEntries = await getAllEntries('day');
+    
+    // Generate days (current month for now)
+    const days: DayEntryState[] = [];
+    for (let d = currentDay; d >= 1; d--) {
+      const dateKey = formatDayDateKey(currentYear, currentMonthIndex, d);
+      const entry = dayEntries.find(e => e.date === dateKey);
+      
+      days.push({
+        year: currentYear,
+        month: currentMonthIndex,
+        day: d,
+        dateKey,
+        isFirstOfMonth: d === currentDay,
+        content: entry?.content || '',
+        expanded: false,
+        hasContent: !!(entry?.content && entry.content.trim().length > 0),
+      });
     }
-    setEditorVisible(true);
+    
+    setDayStates(days);
   };
 
-  const handleSave = async () => {
-    if (editingEntry) {
-      await saveEntry(editingEntry.date, editorContent);
-      await loadEntries();
-      setEditorVisible(false);
-      setEditingEntry(null);
+  const handleToggle = (dateKey: string) => {
+    setDayStates(prev => prev.map(state => 
+      state.dateKey === dateKey 
+        ? { ...state, expanded: !state.expanded }
+        : state
+    ));
+  };
+
+  const handleContentChange = (dateKey: string, newContent: string) => {
+    setDayStates(prev => prev.map(state =>
+      state.dateKey === dateKey
+        ? { ...state, content: newContent, hasContent: newContent.trim().length > 0 }
+        : state
+    ));
+
+    // Debounced save
+    if (saveTimeouts.current[dateKey]) {
+      clearTimeout(saveTimeouts.current[dateKey]);
     }
-  };
-
-  const currentYear = new Date().getFullYear();
-  const currentMonthIndex = new Date().getMonth();
-  const currentDay = new Date().getDate();
-  
-  // Generate days (current month only for simplicity)
-  const days: DayEntry[] = [];
-  for (let d = currentDay; d >= 1; d--) {
-    days.push({
-      year: currentYear,
-      month: currentMonthIndex,
-      day: d,
-      dateKey: formatDayDateKey(currentYear, currentMonthIndex, d),
-      isFirstOfMonth: d === currentDay,
-    });
-  }
-
-  const renderDay = ({ item }: { item: DayEntry }) => {
-    const entry = entries.find(e => e.date === item.dateKey);
-    const hasContent = entry && entry.content.trim().length > 0;
-
-    return (
-      <Pressable
-        style={[styles.entryCard, { 
-          backgroundColor: hasContent ? colors.backgroundLight : 'transparent', 
-          borderColor: colors.gold + '30' 
-        }]}
-        onPress={() => handleOpenEditor(item.dateKey)}
-      >
-        <View style={[styles.entryHeader, { backgroundColor: 'transparent' }]}>
-          <Text style={[styles.entryTitle, { color: colors.goldLight }]}>
-            {item.isFirstOfMonth && (
-              <Text style={[styles.monthPrefix, { color: colors.gold + '99' }]}>
-                {getMonthName(item.month)}{' '}
-              </Text>
-            )}
-            {item.day}
-          </Text>
-          {!hasContent && (
-            <Ionicons name="create-outline" size={20} color={colors.gold + '66'} />
-          )}
-        </View>
-        {hasContent && (
-          <Text 
-            style={[styles.entryPreview, { color: colors.text + '99' }]} 
-            numberOfLines={3}
-          >
-            {entry.content}
-          </Text>
-        )}
-      </Pressable>
-    );
-  };
-
-  const getEditorTitleFromDateKey = (dateKey: string) => {
-    const [, monthStr, dayStr] = dateKey.split('-');
-    const monthIndex = parseInt(monthStr, 10) - 1;
-    const day = parseInt(dayStr, 10);
-    return `${getMonthName(monthIndex)} ${day}`;
+    saveTimeouts.current[dateKey] = setTimeout(() => {
+      saveEntry(dateKey, newContent);
+    }, 1000);
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <FlatList
-        data={days}
-        renderItem={renderDay}
-        keyExtractor={item => item.dateKey}
-        contentContainerStyle={styles.list}
-      />
-
-      <Modal
-        animationType="slide"
-        transparent={false}
-        visible={editorVisible}
-        onRequestClose={() => setEditorVisible(false)}
-      >
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={[styles.editorContainer, { backgroundColor: colors.background }]}
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      {dayStates.map((state) => (
+        <View 
+          key={state.dateKey}
+          style={[
+            styles.entrySection,
+            { 
+              backgroundColor: state.hasContent ? colors.backgroundLight : 'transparent',
+              borderBottomColor: colors.gold + '20',
+              minHeight: state.expanded ? 300 : 'auto',
+            }
+          ]}
         >
-          <View style={[styles.editorHeader, { backgroundColor: colors.backgroundDark, borderBottomColor: colors.gold + '30' }]}>
-            <Pressable onPress={() => setEditorVisible(false)} style={styles.headerButton}>
-              <Ionicons name="close" size={28} color={colors.goldLight} />
-            </Pressable>
-            <Text style={[styles.editorTitle, { color: colors.goldLight }]}>
-              {editingEntry ? getEditorTitleFromDateKey(editingEntry.date) : ''}
+          <Pressable
+            onPress={() => handleToggle(state.dateKey)}
+            style={[
+              styles.entryHeader,
+              { 
+                backgroundColor: colors.backgroundDark + 'CC',
+                borderBottomColor: colors.gold + '30',
+              }
+            ]}
+          >
+            <Text style={[styles.entryTitle, { color: colors.goldLight }]}>
+              {state.isFirstOfMonth && (
+                <Text style={[styles.monthPrefix, { color: colors.gold + '99' }]}>
+                  {getMonthName(state.month)}{' '}
+                </Text>
+              )}
+              {state.day}
             </Text>
-            <Pressable onPress={handleSave} style={styles.headerButton}>
-              <Ionicons name="checkmark" size={28} color={colors.goldLight} />
-            </Pressable>
-          </View>
-          
-          <TextInput
-            style={[styles.editor, { 
-              color: colors.text, 
-              backgroundColor: colors.background 
-            }]}
-            multiline
-            placeholder="how was your day?"
-            placeholderTextColor={colors.gold + '59'}
-            value={editorContent}
-            onChangeText={setEditorContent}
-            autoFocus
-          />
-        </KeyboardAvoidingView>
-      </Modal>
-    </View>
+            {!state.hasContent && !state.expanded && (
+              <Text style={[styles.placeholder, { color: colors.gold + '59' }]}>
+                how was your day?
+              </Text>
+            )}
+          </Pressable>
+
+          {(state.expanded || state.hasContent) && (
+            <TextInput
+              style={[
+                styles.entryInput,
+                {
+                  color: colors.text + 'E6',
+                  backgroundColor: 'transparent',
+                  minHeight: state.expanded ? 240 : 'auto',
+                }
+              ]}
+              multiline
+              placeholder={state.expanded ? "how was your day?" : ""}
+              placeholderTextColor={colors.gold + '59'}
+              value={state.content}
+              onChangeText={(text) => handleContentChange(state.dateKey, text)}
+              scrollEnabled={false}
+              onFocus={() => handleToggle(state.dateKey)}
+            />
+          )}
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -165,58 +149,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  list: {
-    padding: 16,
+  content: {
+    paddingBottom: 20,
   },
-  entryCard: {
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    minHeight: 80,
+  entrySection: {
+    borderBottomWidth: 1,
   },
   entryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
   },
   entryTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   monthPrefix: {
     fontSize: 16,
   },
-  entryPreview: {
+  placeholder: {
     fontSize: 14,
-    lineHeight: 22,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
-  editorContainer: {
-    flex: 1,
-  },
-  editorHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  entryInput: {
     padding: 16,
-    borderBottomWidth: 1,
-  },
-  headerButton: {
-    padding: 8,
-    minWidth: 44,
-  },
-  editorTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
-  editor: {
-    flex: 1,
-    padding: 20,
-    fontSize: 16,
-    lineHeight: 26,
+    fontSize: 15,
+    lineHeight: 24,
     textAlignVertical: 'top',
   },
 });
