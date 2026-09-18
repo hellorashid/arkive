@@ -1,11 +1,13 @@
 import { StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, View } from '@/components/Themed';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { getAllEntries } from '@/lib/storage';
+import SunTracker from '@/components/SunTracker';
+import { formatDayDateKey, getAllEntries } from '@/lib/storage';
 
 const getGreeting = () => {
   const hour = new Date().getHours();
@@ -43,43 +45,45 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme ?? 'dark'];
   const [time, setTime] = useState(new Date());
   const [streak, setStreak] = useState(0);
-  const [daysThisMonth, setDaysThisMonth] = useState(0);
+  const [dayNotes, setDayNotes] = useState<Record<string, string>>({});
   const [aboutVisible, setAboutVisible] = useState(false);
+  const [viewingMonth, setViewingMonth] = useState(new Date().getMonth());
+  const [viewingYear, setViewingYear] = useState(new Date().getFullYear());
+
+  const currentYear = time.getFullYear();
+  const currentMonthIndex = time.getMonth();
+  const currentDay = time.getDate();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const loadStats = async () => {
-      const dayEntries = await getAllEntries('day');
-      const today = new Date();
-      const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth();
-      
-      // Calculate streak
-      let currentStreak = 0;
-      for (let i = 0; i <= 365; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() - i);
-        const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        const hasEntry = dayEntries.some(e => e.date === dateKey);
-        if (hasEntry) currentStreak++;
-        else if (i > 0) break;
-      }
-      setStreak(currentStreak);
+  const loadStats = useCallback(async () => {
+    const dayEntries = await getAllEntries('day');
+    const notes: Record<string, string> = {};
+    for (const entry of dayEntries) {
+      notes[entry.date] = entry.content || '';
+    }
+    setDayNotes(notes);
 
-      // Days logged this month
-      const thisMonthCount = dayEntries.filter(e => {
-        const [y, m] = e.date.split('-').map(Number);
-        return y === currentYear && m === currentMonth + 1;
-      }).length;
-      setDaysThisMonth(thisMonthCount);
-    };
-    
-    loadStats();
+    const today = new Date();
+    let currentStreak = 0;
+    for (let i = 0; i <= 365; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateKey = formatDayDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+      if (notes[dateKey]?.trim()) currentStreak++;
+      else if (i > 0) break;
+    }
+    setStreak(currentStreak);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [loadStats])
+  );
 
   const hours = time.getHours();
   const minutes = time.getMinutes();
@@ -133,18 +137,32 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        <View style={[styles.statsSection, { backgroundColor: 'transparent' }]}>
-          <View style={[styles.statCard, { backgroundColor: colors.backgroundLight, borderColor: colors.gold + '30' }]}>
-            <Text style={[styles.statNumber, { color: colors.goldLight }]}>{streak}</Text>
-            <Text style={[styles.statLabel, { color: colors.gold + '99' }]}>day streak</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.backgroundLight, borderColor: colors.gold + '30' }]}>
-            <Text style={[styles.statNumber, { color: colors.goldLight }]}>{daysThisMonth}</Text>
-            <Text style={[styles.statLabel, { color: colors.gold + '99' }]}>
-              {daysThisMonth === 1 ? 'entry' : 'entries'} this month
-            </Text>
-          </View>
-        </View>
+        <SunTracker
+          dayNotes={dayNotes}
+          viewingYear={viewingYear}
+          viewingMonth={viewingMonth}
+          currentYear={currentYear}
+          currentMonthIndex={currentMonthIndex}
+          currentDay={currentDay}
+          currentStreak={streak}
+          onPreviousMonth={() => {
+            if (viewingMonth === 0) {
+              setViewingMonth(11);
+              setViewingYear((y) => y - 1);
+            } else {
+              setViewingMonth((m) => m - 1);
+            }
+          }}
+          onNextMonth={() => {
+            if (viewingMonth === currentMonthIndex && viewingYear === currentYear) return;
+            if (viewingMonth === 11) {
+              setViewingMonth(0);
+              setViewingYear((y) => y + 1);
+            } else {
+              setViewingMonth((m) => m + 1);
+            }
+          }}
+        />
 
         <View style={[styles.quoteSection, { backgroundColor: colors.backgroundDark, borderColor: colors.gold + '20' }]}>
           <Text style={[styles.quoteMark, { color: colors.gold + '33' }]}>✦</Text>
@@ -258,28 +276,6 @@ const styles = StyleSheet.create({
   date: {
     fontSize: 14,
     letterSpacing: 1,
-  },
-  statsSection: {
-    flexDirection: 'row',
-    gap: 16,
-    marginBottom: 32,
-  },
-  statCard: {
-    flex: 1,
-    padding: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 36,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
   },
   quoteSection: {
     padding: 20,
