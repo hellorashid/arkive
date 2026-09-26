@@ -11,6 +11,7 @@ import MobileDrawer from '../components/MobileDrawer';
 import MobileHome from '../components/MobileHome';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { JournalProvider } from '../lib/journal-context';
+import { useAdminReporter } from '../hooks/useAdminReporter';
 
 // Helper to get days in a month
 const getDaysInMonth = (year: number, month: number) => {
@@ -74,7 +75,10 @@ type JournalEntry = {
 
 export default function Journal() {
   const isMobile = useIsMobile();
-  const { db, isSignedIn, user, canWrite, status, signIn } = useBasic();
+  const { client, db, isSignedIn, user, canWrite, status, signIn } = useBasic();
+  
+  // Initialize admin user directory and activity reporting
+  useAdminReporter(client);
   
   const [expandedColumn, setExpandedColumn] = useState<'left' | 'middle' | 'right' | 'home'>('home');
   const [currentYear] = useState(new Date().getFullYear());
